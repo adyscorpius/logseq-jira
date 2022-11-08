@@ -3,8 +3,8 @@ import { SettingSchemaDesc } from '@logseq/libs/dist/LSPlugin.user';
 
 /**
  * Known Issues with code
- * 1. If the first value is the JIRA string, the function errors out.
- * 2. Haven't tested with multiple values in a single row.
+ * 1. If the first value is the JIRA string, the function errors out. DONE
+ * 2. Haven't tested with multiple values in a single row. 
  * 3. Running this on a link causes an error. 
  *      - Potential options 
  *          Prioritizing URLs over IssueKey regex
@@ -20,7 +20,6 @@ const jira_matcher: RegExp = /([A-Z][A-Z0-9]+-[0-9]+)/g;
 const getJiraIssue = async (
     issueRest: string, creds: string ) => {
 
-    //console.log('issueURL in getJiraIssue', issueRest);
     const r = await fetch(issueRest, {
         method: 'GET',
         headers: {
@@ -50,7 +49,7 @@ const replaceJira = async (restURL, jiraURL, creds) => {
                 const issueURL = `${jiraURL}${m.trim()}`;
                 const issueRest = `${restURL}${m.trim()}`;
                 const jiraData = await getJiraIssue(issueRest, creds);
-                newLinks[i] = `[${jiraData.fields.summary} ${jiraData.fields.status.name}](${issueURL})`;
+                newLinks[i] = `[[${jiraData.fields.status.name}] - ${jiraData.fields.summary}](${issueURL})`;
                 const newBlockValue = value.replace(m, newLinks[i]);
                 await logseq.Editor.updateBlock(currentBlock.uuid, newBlockValue);
             } catch (e) {
@@ -69,8 +68,6 @@ function main() {
     const restURL = `https://${baseURL}/rest/api/3/issue/`;
     const jiraURL = `https://${baseURL}/browse/`;
     const creds = Buffer.from(`${user}:${apiToken}`).toString("base64");
-
-    console.log(baseURL, restURL, jiraURL, creds);
 
     const settings: SettingSchemaDesc[] = [
         {
