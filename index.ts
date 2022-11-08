@@ -49,7 +49,8 @@ const replaceJira = async (restURL, jiraURL, creds) => {
                 const issueURL = `${jiraURL}${m.trim()}`;
                 const issueRest = `${restURL}${m.trim()}`;
                 const jiraData = await getJiraIssue(issueRest, creds);
-                newLinks[i] = `[[${jiraData.fields.status.name}] - ${jiraData.fields.summary}](${issueURL})`;
+                const statusCategory = jiraData.fields.status.statusCategory.name;
+                newLinks[i] = `[${m.trim()} - ${jiraData.fields.summary}](${issueURL}) <mark class='${statusCategory.toLowerCase() === 'done' || 'complete' ? 'done' : 'backlog'}'>${jiraData.fields.status.name}</mark>`;
                 const newBlockValue = value.replace(m, newLinks[i]);
                 await logseq.Editor.updateBlock(currentBlock.uuid, newBlockValue);
             } catch (e) {
@@ -94,6 +95,36 @@ function main() {
     ];
 
     logseq.useSettingsSchema(settings);
+
+    logseq.provideStyle(`
+        .white-theme,
+        html[data-theme=light] {
+            --mark-done: #bbfabb;
+            --mark-progress: #b5d3ff;
+            --mark-backlog: #cacfd9;
+        }
+
+        .dark-theme,
+        html[data-theme=dark] {
+            --mark-done: #bbfabb;
+            --mark-progress: #b5d3ff;
+            --mark-backlog: #cacfd9;
+        }
+
+        mark.done {
+            background-color: var(--mark-done);
+        }
+
+        mark.progress {
+            background-color: var(--mark-progress);
+        }   
+
+        mark.backlog {
+            background-color: var(--mark-backlog);
+        }
+        
+    
+    `)
 
     logseq.Editor.registerSlashCommand('Refresh Jira', (_) => {
         return replaceJira(restURL, jiraURL, creds);
