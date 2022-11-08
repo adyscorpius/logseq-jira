@@ -13,4 +13,8 @@ This is an early attempt to bring Jira issue status inside Logseq.
 ### Testing the plugin
 
 - `npm install && npm run build` in terminal to install dependencies.
+
+- To enable Developer mode in Logseq, go to Settings -> Advanced -> Turn on Developer Mode.
+
 - `Load unpacked plugin` in Logseq Desktop client.
+
