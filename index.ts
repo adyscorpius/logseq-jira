@@ -2,136 +2,123 @@ import '@logseq/libs';
 import { SettingSchemaDesc } from '@logseq/libs/dist/LSPlugin.user';
 
 /**
- * Known Issues with code
- * 1. If the first value is the JIRA string, the function errors out. DONE
- * 2. Haven't tested with multiple values in a single row. 
- * 3. Running this on a link causes an error. 
- *      - Potential options 
- *          Prioritizing URLs over IssueKey regex
- *          Update regex to require whitespace on both sides. \S
- *          replace vs replaceAll
- *          Possible better execution with the following example
- *              https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/exec
+ * Main Logseq-Jira Function to register the plugin.
  */
-
-
-const jira_matcher: RegExp = /([A-Z][A-Z0-9]+-[0-9]+)/g;
-
-const getJiraIssue = async (
-    issueRest: string, creds: string ) => {
-
-    const r = await fetch(issueRest, {
-        method: 'GET',
-        headers: {
-            'Accept': 'application/json',
-            'Authorization': `Basic ${creds}`
-        }
-    })
-    const response = await r.json();
-    return response;
-}
-
-
-const replaceJira = async (restURL, jiraURL, creds) => {
-    const currentBlock = await logseq.Editor.getCurrentBlock();
-
-    const value = currentBlock?.content || "";
-    let matches = value.match(jira_matcher);
-
-    if (matches === null) {
-        logseq.UI.showMsg('No JIRA issues found.', 'error');
-        return;
-    }
-    let newLinks: Array<string> = [];
-    matches.forEach(
-        async (m, i) => {
-            try {
-                const issueURL = `${jiraURL}${m.trim()}`;
-                const issueRest = `${restURL}${m.trim()}`;
-                const jiraData = await getJiraIssue(issueRest, creds);
-                const statusCategory = jiraData.fields.status.statusCategory.name;
-                newLinks[i] = `[${m.trim()} - ${jiraData.fields.summary}](${issueURL}) <mark class='${statusCategory.toLowerCase() === 'done' || 'complete' ? 'done' : 'backlog'}'>${jiraData.fields.status.name}</mark>`;
-                const newBlockValue = value.replace(m, newLinks[i]);
-                await logseq.Editor.updateBlock(currentBlock.uuid, newBlockValue);
-            } catch (e) {
-                logseq.UI.showMsg(`Couldn't make API request ${e}`, 'error');
-                return;
-            }
-        })
-
-}
 
 function main() {
 
-    const user = logseq.settings?.jiraUsername;
-    const apiToken = logseq.settings?.jiraAPIToken;
-    const baseURL = logseq.settings?.jiraBaseURL;
-    const restURL = `https://${baseURL}/rest/api/3/issue/`;
-    const jiraURL = `https://${baseURL}/browse/`;
-    const creds = Buffer.from(`${user}:${apiToken}`).toString("base64");
-
-    const settings: SettingSchemaDesc[] = [
-        {
-            key: "jiraUsername",
-            description: "Your JIRA Username (Normally an email ID)",
-            type: "string",
-            default: "",
-            title: "JIRA Username",
-        },
-        {
-            key: "jiraAPIToken",
-            description: "Your JIRA API Token.",
-            type: "string",
-            default: "",
-            title: "JIRA API Token",
-        },
-        {
-            key: "jiraBaseURL",
-            description: "Base URL for your Jira instance (don't include the https:// and trailing /",
-            type: "string",
-            default: "orgname.atlassian.net",
-            title: "Base URL for your organization",
-        },
-    ];
-
     logseq.useSettingsSchema(settings);
 
-    logseq.provideStyle(`
-        .white-theme,
-        html[data-theme=light] {
-            --mark-done: #bbfabb;
-            --mark-progress: #b5d3ff;
-            --mark-backlog: #cacfd9;
-        }
-
-        .dark-theme,
-        html[data-theme=dark] {
-            --mark-done: #bbfabb;
-            --mark-progress: #b5d3ff;
-            --mark-backlog: #cacfd9;
-        }
-
-        mark.done {
-            background-color: var(--mark-done);
-        }
-
-        mark.progress {
-            background-color: var(--mark-progress);
-        }   
-
-        mark.backlog {
-            background-color: var(--mark-backlog);
-        }
-        
-    
-    `)
-
-    logseq.Editor.registerSlashCommand('Refresh Jira', (_) => {
-        return replaceJira(restURL, jiraURL, creds);
+    logseq.Editor.registerSlashCommand('Update Jira Issue', (_) => {
+        return updateJiraIssue();
     })
+
     console.log("Jira Plugin loaded.")
+
 }
 
+
+// Regex declarations
+// DEV-1000
+const issueKeyRegex: RegExp = /(?<!\[.*)(?<![^\s\,\.])([A-Z][A-Z0-9]+-[0-9]+)(?<!.*\])/gim;
+
+// https://company.atlassian.net/browse/DEV-1000
+const jiraRegex: RegExp = /(?<!\()(https*:\/\/.{1,25}.atlassian.net\/browse\/([A-Z][A-Z0-9]{1,6}-[0-9]{1,8}))(?<!\))/gim;
+
+// [Some Jira status text we could update](https://company.atlassian.net/browse/DEV-1000)
+const jiraLinkRegex: RegExp = /\[(.{1,100})\]\((https*:\/\/.{1,25}.atlassian.net\/browse\/[A-Z][A-Z0-9]{1,6}-[0-9]{1,8})\)/gim;
+
+// [A Markdown URL](https://some.other-url.com/we-dont-care-about)
+const markdownLinkRegex: RegExp = /(?:__|[*#])|\[(.*?)\]\(.*?\)/gi;
+
+// DEV-1000 https://company.atlassian.net/browse/DEV-1000 (basically everything that has an issueKey)
+const issueTestRegex: RegExp = /([A-Z][A-Z0-9]+-[0-9]+)/gim
+
+
+
+// Primary function called by slash command
+async function updateJiraIssue() {
+    try {
+        // Get current block value
+        const currentBlock = await logseq.Editor.getCurrentBlock();
+        const value = currentBlock?.content;
+
+        if (value.length < 3 || !issueTestRegex.test(value)) {                                               // TODO: Find a better logic?
+            logseq.UI.showMsg("Text is too short or doesn't contain a valid Jira issue.", 'error');
+            return;
+        };
+
+        let newValue = await replaceAsync(value, 'issueKey', generateTextFromAPI);
+        newValue = await replaceAsync(newValue, 'jiraLink', generateTextFromAPI);
+        
+        await logseq.Editor.updateBlock(currentBlock.uuid, newValue);
+    } catch (e) {
+        logseq.UI.showMsg(e, 'error');
+    }
+}
+
+// Helper function run regex replacements asynchronously and as soon as possible.
+async function replaceAsync(str: string, regexType: 'issueKey' | 'jiraLink', asyncFn: any) {
+    let isIssueType = regexType === 'issueKey';
+    let regex: RegExp = isIssueType ? issueKeyRegex : jiraRegex;
+
+    // Send match value if regex type is issue Key, else send 2nd match group value to correspond to the same value. 
+    // Match type for issueKey = ["DEV-7457", "DEV-7457"] 
+    // Match type for jiraLink = ["https://company.atlassian.net/browse/DEV-7457", "https://company.atlassian.net/browse/DEV-7457", "DEV-7457"]
+    const promises = (Array.from(str.matchAll(regex), (match) => asyncFn(isIssueType ? match[0] : match[2])));
+    const data = await Promise.all(promises);
+    return str.replace(regex, () => data.shift());
+}
+
+
+// Make API call to Atlassian for generating new text from from Jira Issue key
+async function generateTextFromAPI(issueKey: string): Promise<string> {
+    try {
+        if (!issueTestRegex.test(issueKey)) console.log(`Badly structured issueKey ${issueKey} sent to getJiraIssue.`, 'error');
+        const creds = Buffer.from(`${logseq.settings?.jiraUsername}:${logseq.settings?.jiraAPIToken}`).toString("base64");
+        const issueRest = `https://${logseq.settings?.jiraBaseURL}/rest/api/3/issue/${issueKey}`;
+        const jiraURL = `https://${logseq.settings?.jiraBaseURL}/browse/${issueKey}`;
+        const r = await fetch(issueRest, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': `Basic ${creds}`
+            }
+        });
+        
+        const data = await r.json();
+        let newVal = `[${data.fields.status.name}|${issueKey}|${data.fields.summary}](${jiraURL})`;
+        return newVal;
+    } catch(e) {
+        logseq.UI.showMsg(e, 'error');
+        return `NOTFOUND: ${issueKey}.`
+    }
+}
+
+
+const settings: SettingSchemaDesc[] = [
+    {
+        key: "jiraUsername",
+        description: "Your JIRA Username (Normally an email ID)",
+        type: "string",
+        default: "",
+        title: "JIRA Username",
+    },
+    {
+        key: "jiraAPIToken",
+        description: "Your JIRA API Token generated as per https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/",
+        type: "string",
+        default: "",
+        title: "JIRA API Token",
+    },
+    {
+        key: "jiraBaseURL",
+        description: "Base URL for your Jira instance in the format <orgname>.atlassian.net (Don't include the initial https:// and trailing /",
+        type: "string",
+        default: "orgname.atlassian.net",
+        title: "Base URL for your organization",
+    },
+];
 
 
 logseq.ready(main).catch(console.error);
