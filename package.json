@@ -1,6 +1,6 @@
 {
   "name": "logseq-jira",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Keep Jira issue status synced with Logseq",
   "main": "dist/index.html",
   "targets": {
@@ -11,7 +11,7 @@
     "dev": "parcel build --no-optimize index.html --public-url ./"
   },
   "keywords": ["logseq", "logseq plugin", "logseq jira integration", "jira"],
-  "author": "Adit Sharda",
+  "author": "adyscorpius",
   "license": "MIT",
   "dependencies": {
     "@logseq/libs": "^0.0.10"
@@ -19,6 +19,9 @@
   "logseq": {
     "id": "logseq-jira-linker",
     "title": "Logseq Jira Sync",
+    "author": "adyscorpius",
+    "repository": "adyscorpius/logseq-jira",
+    "icon": "jira.png",
     "description": "A Logseq plugin to automatically keep Jira issues updated."
   },
   "devDependencies": {

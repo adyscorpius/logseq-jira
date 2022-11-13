@@ -50,8 +50,8 @@ async function updateJiraIssue() {
 
         let newValue = await replaceAsync(value, 'issueKey', generateTextFromAPI);
         newValue = await replaceAsync(newValue, 'jiraLink', generateTextFromAPI);
-        
         await logseq.Editor.updateBlock(currentBlock.uuid, newValue);
+        logseq.UI.showMsg('Updated all JIRA links found.')
     } catch (e) {
         logseq.UI.showMsg(e, 'error');
     }
