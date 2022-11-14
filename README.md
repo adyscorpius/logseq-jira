@@ -1,20 +1,33 @@
 ## Logseq Jira Sync Plugin
 
-This is an early attempt to bring Jira issue status inside Logseq.
+Bring Jira issue status and summaries to Logseq with this plugin. Upvote the plugin for Logseq Marketplace by [clicking here](https://discuss.logseq.com/t/logseq-jira-plugin/12414)
 
-### Known Issues / Enhancements
+## Current Functionality
 
-1. Sometimes block doesn't update fast enough for the plugin to receive block current contents.
-2. Doesn't work correctly with multiple issues in a single block.
-3. Running this on a link causes text to break.
-4. Doesn't auto refresh to keep status updated.
+1. Use the slash command "Update Jira Issue" to replace issue keys (PM-100, ISS-1432143, etc.) or issue links like <subdomain>.atlassian.net/browse/<issueKey> with `[<status>|<issueKey>|<issueSummary>](https://orgname.atlassian.net/browse/<issueKey>)` format.
 
+### Known Limitations
 
-### Testing the plugin
+1. Only works for the current block.
+2. Doesn't refresh the link description on re-run.
+3. Doesn't auto-refresh to keep status updated.
 
-- `npm install && npm run build` in terminal to install dependencies.
+### Roadmap
 
-- To enable Developer mode in Logseq, go to Settings -> Advanced -> Turn on Developer Mode.
+- [ ]  Refresh summary on rerun on existing links.
+- [ ]  Auto refresh/update all links on current page.
+- [ ]  Auto refresh all Jira links across vault (need to verify performance impact on doing this).
+- [ ]  Create your own Link description format with Jira variables ( '{issueKey} - {status} - {summary}' )
 
-- `Load unpacked plugin` in Logseq Desktop client.
+### How to install the plugin (Before approval from marketplace)
+
+- Git clone the repository to your local system. Or download and extract to a known path.
+
+- `npm install && npm run build` in terminal to install dependencies and generate distribution folder.
+
+- Enable Developer mode in Logseq by going to Settings -> Advanced -> Turn on Developer Mode.
+
+- `Load unpacked plugin` in Logseq Desktop client and select the folder for the plugin on your disk.
+
+- For updates, git pull the main branch and 'Reload Package' under Plugins > Logseq Jira.
 
