@@ -1,6 +1,6 @@
 ## Logseq Jira Sync Plugin
 
-Bring Jira issue status and summaries to Logseq with this plugin. Upvote the plugin for Logseq Marketplace by [clicking here](https://discuss.logseq.com/t/logseq-jira-plugin/12414)
+Bring Jira issue status and summaries to Logseq with this plugin. Upvote the plugin for Logseq Marketplace by [clicking here](https://discuss.logseq.com/t/logseq-jira-plugin/12414?u=adit)
 
 ## Current Functionality
 
@@ -9,12 +9,12 @@ Bring Jira issue status and summaries to Logseq with this plugin. Upvote the plu
 ### Known Limitations
 
 1. Only works for the current block.
-2. Doesn't refresh the link description on re-run.
+2. ~~Doesn't refresh the link description on re-run.~~
 3. Doesn't auto-refresh to keep status updated.
 
 ### Roadmap
 
-- [ ]  Refresh summary on rerun on existing links.
+- [x]  Refresh summary on rerun on existing links.
 - [ ]  Auto refresh/update all links on current page.
 - [ ]  Auto refresh all Jira links across vault (need to verify performance impact on doing this).
 - [ ]  Create your own Link description format with Jira variables ( '{issueKey} - {status} - {summary}' )
