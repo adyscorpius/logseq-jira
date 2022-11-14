@@ -54,7 +54,7 @@ async function updateJiraIssue() {
         await logseq.Editor.updateBlock(currentBlock.uuid, newValue);
         logseq.UI.showMsg('Updated all JIRA links found.')
     } catch (e) {
-        logseq.UI.showMsg(e, 'error');
+        console.log(e);
     }
 }
 
@@ -87,12 +87,11 @@ async function generateTextFromAPI(issueKey: string): Promise<string> {
                 'Authorization': `Basic ${creds}`
             }
         });
-        
         const data = await r.json();
         let newVal = `[${data.fields.status.name}|${issueKey}|${data.fields.summary}](${jiraURL})`;
         return newVal;
     } catch(e) {
-        logseq.UI.showMsg(e, 'error');
+        console.log(e);
         return `NOTFOUND: ${issueKey}.`
     }
 }
