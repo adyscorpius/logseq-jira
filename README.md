@@ -20,14 +20,17 @@ Bring Jira issue status and summaries to Logseq with this plugin. Upvote the plu
 - [ ]  Create your own Link description format with Jira variables ( '{issueKey} - {status} - {summary}' )
 
 ### How to install the plugin (Before approval from marketplace)
+- Download the release from [Releases](https://github.com/adyscorpius/logseq-jira/releases) section.
+- Unzip the plugin into a folder of your choice.
+- Enable Developer mode in Logseq by going to Settings -> Advanced -> Turn on Developer Mode.
+- `Load unpacked plugin` in Logseq Desktop client and select the folder for the plugin on your disk.
+- For updates, git pull the main branch and 'Reload Package' under Plugins > Logseq Jira.
+
+### How to build the plugin
 
 - Git clone the repository to your local system. Or download and extract to a known path.
-
 - `npm install && npm run build` in terminal to install dependencies and generate distribution folder.
-
 - Enable Developer mode in Logseq by going to Settings -> Advanced -> Turn on Developer Mode.
-
 - `Load unpacked plugin` in Logseq Desktop client and select the folder for the plugin on your disk.
-
 - For updates, git pull the main branch and 'Reload Package' under Plugins > Logseq Jira.
 
