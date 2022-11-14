@@ -1,3 +1,5 @@
+[![Build plugin](https://github.com/adyscorpius/logseq-jira/actions/workflows/publish.yml/badge.svg)](https://github.com/adyscorpius/logseq-jira/actions/workflows/publish.yml)
+
 ## Logseq Jira Sync Plugin
 
 Bring Jira issue status and summaries to Logseq with this plugin. Upvote the plugin for Logseq Marketplace by [clicking here](https://discuss.logseq.com/t/logseq-jira-plugin/12414?u=adit)
