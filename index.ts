@@ -89,7 +89,10 @@ async function generateTextFromAPI(issueKey: string): Promise<string> {
         });
         
         const data = await r.json();
-        if (r.status >= 300) return `${issueKey} Error ${r.status}: ${data.errorMessages[0]}`;
+        if (r.status >= 300) {
+            //logseq.UI.showMsg(`Error requesting info for ${issueKey}`);
+            return `[Error ${r.status}|${issueKey}|${data.errorMessages[0]}](${jiraURL})`
+        }
         return `[${data?.fields.status.name}|${issueKey}|${data?.fields.summary}](${jiraURL})`;
     } catch(e) {
         console.log('logseq-jira', e.message);
