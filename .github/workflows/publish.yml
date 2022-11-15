@@ -25,7 +25,7 @@ jobs:
           npm ci
           npm run build
           mkdir ${{ env.PLUGIN_NAME }}
-          cp README.md LICENSE package.json jira.png ${{ env.PLUGIN_NAME }}
+          cp README.md demo.gif LICENSE package.json jira.png ${{ env.PLUGIN_NAME }}
           mv dist ${{ env.PLUGIN_NAME }}
           zip -r ${{ env.PLUGIN_NAME }}.zip ${{ env.PLUGIN_NAME }}
           ls
