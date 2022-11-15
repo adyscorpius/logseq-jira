@@ -54,7 +54,7 @@ async function updateJiraIssue() {
         await logseq.Editor.updateBlock(currentBlock.uuid, newValue);
         logseq.UI.showMsg('Updated all JIRA links found.')
     } catch (e) {
-        console.log(e);
+        console.log('logseq-jira', e.message);
     }
 }
 
@@ -76,7 +76,7 @@ async function replaceAsync(str: string, regexType: 'issueKey' | 'jiraLink' | 'm
 // Make API call to Atlassian for generating new text from from Jira Issue key
 async function generateTextFromAPI(issueKey: string): Promise<string> {
     try {
-        if (!issueTestRegex.test(issueKey)) console.log(`Badly structured issueKey ${issueKey} sent to getJiraIssue.`, 'error');
+        if (!issueTestRegex.test(issueKey)) console.log(`logseq-jira: Badly structured issueKey ${issueKey}`);
         const creds = Buffer.from(`${logseq.settings?.jiraUsername}:${logseq.settings?.jiraAPIToken}`).toString("base64");
         const issueRest = `https://${logseq.settings?.jiraBaseURL}/rest/api/3/issue/${issueKey}`;
         const jiraURL = `https://${logseq.settings?.jiraBaseURL}/browse/${issueKey}`;
@@ -87,12 +87,13 @@ async function generateTextFromAPI(issueKey: string): Promise<string> {
                 'Authorization': `Basic ${creds}`
             }
         });
+        
         const data = await r.json();
-        let newVal = `[${data.fields.status.name}|${issueKey}|${data.fields.summary}](${jiraURL})`;
-        return newVal;
+        if (r.status >= 300) return `${issueKey} Error ${r.status}: ${data.errorMessages[0]}`;
+        return `[${data?.fields.status.name}|${issueKey}|${data?.fields.summary}](${jiraURL})`;
     } catch(e) {
-        console.log(e);
-        return `NOTFOUND: ${issueKey}.`
+        console.log('logseq-jira', e.message);
+        return `${issueKey} : Error.`
     }
 }
 
