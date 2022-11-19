@@ -4,6 +4,10 @@
 
 Bring Jira issue status and summaries to Logseq with this plugin. Check out the discussion on Logseq Forums by [clicking here](https://discuss.logseq.com/t/logseq-jira-plugin/12414?u=adit)
 
+## Quick Start
+
+Start by using `ctrl+shift+j' in a block containing a JIRA issue key or link.
+
 ## What it does?
 
 ![Demo](./demo.gif)

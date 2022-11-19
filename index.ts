@@ -13,6 +13,15 @@ function main() {
         return updateJiraIssue();
     })
 
+    logseq.App.registerCommand('refreshJira', {
+        key: 'refreshJira',
+        label: 'Refresh Jira',
+        desc: 'Refresh Jira links in block',
+        keybinding: { binding: 'mod+shift+j' }
+    }, (e) => {
+        return updateJiraIssue();
+    })
+
     console.log("Jira Plugin loaded.")
 
 }
@@ -95,7 +104,7 @@ async function generateTextFromAPI(issueKey: string): Promise<string> {
             return `[Error ${r.status}|${issueKey}|${data.errorMessages[0]}](${jiraURL})`
         }
         return `[${data?.fields.status.name}|${issueKey}|${data?.fields.summary}](${jiraURL})`;
-    } catch(e) {
+    } catch (e) {
         console.log('logseq-jira', e.message);
         return `${issueKey} : Error.`
     }
