@@ -20,13 +20,13 @@ function main() {
 
 // Regex declarations
 // DEV-1000
-const issueKeyRegex: RegExp = /(?<!\[.*)(?<![^\s\,\.])([A-Z][A-Z0-9]+-[0-9]+)(?<!.*\])/gim;
+const issueKeyRegex: RegExp = /(?<![\,\.\/\S])([A-Z][A-Z0-9]+-[0-9]+)(?!.?\])/gim;
 
 // https://company.atlassian.net/browse/DEV-1000
-const jiraRegex: RegExp = /(?<!\()(https*:\/\/.{1,25}.atlassian.net\/browse\/([A-Z][A-Z0-9]{1,6}-[0-9]{1,8}))(?<!\))/gim;
+const jiraRegex: RegExp = /(?<!\()(https*:\/\/.{1,25}.atlassian.net\/browse\/([A-Z][A-Z0-9]{1,6}-[0-9]{1,8}))(?!\))/gim;
 
 // [Some Jira status text we could update](https://company.atlassian.net/browse/DEV-1000)
-const jiraLinkRegex: RegExp = /\[.{1,100}\]\((https*:\/\/.{1,25}.atlassian.net\/browse\/([A-Z][A-Z0-9]{1,6}-[0-9]{1,8}))\)/igm;
+const jiraLinkRegex: RegExp = /\[([^\]]*)?\]\((https?:\/\/[A-Za-z0-9 ]+\.atlassian\.net\/browse\/([A-Za-z0-9\-]+))\)/gim;
 
 // [A Markdown URL](https://some.other-url.com/we-dont-care-about)
 const markdownLinkRegex: RegExp = /(?:__|[*#])|\[(.*?)\]\(.*?\)/gi;
@@ -63,11 +63,12 @@ async function replaceAsync(str: string, regexType: 'issueKey' | 'jiraLink' | 'm
     const isIssueType = regexType === 'issueKey';
     const isJiraLink = regexType === 'jiraLink';
     let regex: RegExp = isIssueType ? issueKeyRegex : isJiraLink ? jiraRegex : jiraLinkRegex;
-
     // Send match value if regex type is issue Key, else send 2nd match group value to correspond to the same value. 
     // Match type for issueKey = ["DEV-7457", "DEV-7457"] 
     // Match type for jiraLink = ["https://company.atlassian.net/browse/DEV-7457", "https://company.atlassian.net/browse/DEV-7457", "DEV-7457"]
-    const promises = (Array.from(str.matchAll(regex), (match) => asyncFn(isIssueType ? match[0] : match[2])));
+    const promises = (Array.from(str.matchAll(regex), (match) => {
+        return asyncFn(isIssueType ? match[0] : isJiraLink ? match[2] : match[3])
+    }));
     const data = await Promise.all(promises);
     return str.replace(regex, () => data.shift());
 }
