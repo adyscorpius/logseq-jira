@@ -53,7 +53,7 @@ async function updateJiraIssue() {
         const value = currentBlock?.content;
 
         if (value.length < 3 || !issueTestRegex.test(value)) {                                               // TODO: Find a better logic?
-            logseq.UI.showMsg("Text is too short or doesn't contain a valid Jira issue.", 'error');
+            logseq.UI.showMsg("Couldn't find a valid Jira issue key.", 'error');
             return;
         };
 
