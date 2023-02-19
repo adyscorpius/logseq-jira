@@ -48,19 +48,26 @@ const issueTestRegex: RegExp = /([A-Z][A-Z0-9]+-[0-9]+)/i
 // Primary function called by slash command
 async function updateJiraIssue() {
     try {
+
+        const baseURL = logseq.settings?.jiraBaseURL;
+         if (!baseURL) {
+            logseq.UI.showMsg('Jira base URL not set. Update in Plugin settings.')
+            throw new Error('Jira base URL not set.');
+        }
+
         // Get current block value
         const currentBlock = await logseq.Editor.getCurrentBlock();
-        const value = currentBlock?.content;
+        let value = currentBlock?.content;
 
-        if (value.length < 3 || !issueTestRegex.test(value)) {                                               // TODO: Find a better logic?
+        if (!value || value.length < 3 || !issueTestRegex.test(value)) {                                               // TODO: Find a better logic?
             logseq.UI.showMsg("Couldn't find a valid Jira issue key.", 'error');
             return;
         };
 
-        let newValue = await replaceAsync(value, 'issueKey', generateTextFromAPI);
-        newValue = await replaceAsync(newValue, 'jiraLink', generateTextFromAPI);
-        newValue = await replaceAsync(newValue, 'markdown', generateTextFromAPI);
-        await logseq.Editor.updateBlock(currentBlock.uuid, newValue);
+        value = await replaceAsync(value, 'issueKey', generateTextFromAPI);
+        value = await replaceAsync(value, 'jiraLink', generateTextFromAPI);
+        value = await replaceAsync(value, 'markdown', generateTextFromAPI);
+        await logseq.Editor.updateBlock(currentBlock.uuid, value);
         logseq.UI.showMsg('Updated all JIRA links found.')
     } catch (e) {
         console.log('logseq-jira', e.message);
@@ -86,24 +93,27 @@ async function replaceAsync(str: string, regexType: 'issueKey' | 'jiraLink' | 'm
 // Make API call to Atlassian for generating new text from from Jira Issue key
 async function generateTextFromAPI(issueKey: string): Promise<string> {
     try {
-        if (!issueTestRegex.test(issueKey)) console.log(`logseq-jira: Badly structured issueKey ${issueKey}`);
+        if (!issueTestRegex.test(issueKey)) {
+            console.log(`logseq-jira: Badly structured issueKey ${issueKey}`);
+        }
+
         const creds = Buffer.from(`${logseq.settings?.jiraUsername}:${logseq.settings?.jiraAPIToken}`).toString("base64");
-        const issueRest = `https://${logseq.settings?.jiraBaseURL}/rest/api/3/issue/${issueKey}`;
-        const jiraURL = `https://${logseq.settings?.jiraBaseURL}/browse/${issueKey}`;
-        const r = await fetch(issueRest, {
-            method: 'GET',
+        const issueRest = `https://${baseURL}/rest/api/3/issue/${issueKey}`;
+        const jiraURL = `https://${baseURL}/browse/${issueKey}`;
+        const response = await fetch(issueRest, {
             headers: {
                 'Accept': 'application/json',
                 'Authorization': `Basic ${creds}`
             }
         });
         
-        const data = await r.json();
-        if (r.status >= 300) {
+        const data = await response.json();
+        if (response.status >= 300) {
+            const error = data.errorMessages[0] || 'Unknown Error';
             //logseq.UI.showMsg(`Error requesting info for ${issueKey}`);
-            return `[Error ${r.status}|${issueKey}|${data.errorMessages[0]}](${jiraURL})`
+            return `[Error ${response.status}|${issueKey}|${error}](${jiraURL})`
         }
-        return `[${data?.fields.status.name}|${issueKey}|${data?.fields.summary}](${jiraURL})`;
+        return `[${issueKey}|${data?.fields.summary}](${jiraURL})`;
     } catch (e) {
         console.log('logseq-jira', e.message);
         return `${issueKey} : Error.`
