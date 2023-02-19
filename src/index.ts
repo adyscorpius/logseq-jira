@@ -49,12 +49,6 @@ const issueTestRegex: RegExp = /([A-Z][A-Z0-9]+-[0-9]+)/i
 async function updateJiraIssue() {
     try {
 
-        const baseURL = logseq.settings?.jiraBaseURL;
-         if (!baseURL) {
-            logseq.UI.showMsg('Jira base URL not set. Update in Plugin settings.')
-            throw new Error('Jira base URL not set.');
-        }
-
         // Get current block value
         const currentBlock = await logseq.Editor.getCurrentBlock();
         let value = currentBlock?.content;
@@ -75,15 +69,16 @@ async function updateJiraIssue() {
 }
 
 // Helper function run regex replacements asynchronously and as soon as possible.
-async function replaceAsync(str: string, regexType: 'issueKey' | 'jiraLink' | 'markdown', asyncFn: any) {
+async function replaceAsync(
+    str: string,
+    regexType: 'issueKey' | 'jiraLink' | 'markdown',
+    getAPIResponseText: any) {
+
     const isIssueType = regexType === 'issueKey';
     const isJiraLink = regexType === 'jiraLink';
     let regex: RegExp = isIssueType ? issueKeyRegex : isJiraLink ? jiraRegex : jiraLinkRegex;
-    // Send match value if regex type is issue Key, else send 2nd match group value to correspond to the same value. 
-    // Match type for issueKey = ["DEV-7457", "DEV-7457"] 
-    // Match type for jiraLink = ["https://company.atlassian.net/browse/DEV-7457", "https://company.atlassian.net/browse/DEV-7457", "DEV-7457"]
     const promises = (Array.from(str.matchAll(regex), (match) => {
-        return asyncFn(match.groups.issue);
+        return getAPIResponseText(match.groups.issue);
     }));
     const data = await Promise.all(promises);
     return str.replace(regex, () => data.shift());
@@ -95,6 +90,12 @@ async function generateTextFromAPI(issueKey: string): Promise<string> {
     try {
         if (!issueTestRegex.test(issueKey)) {
             console.log(`logseq-jira: Badly structured issueKey ${issueKey}`);
+        }
+
+        const baseURL = logseq.settings?.jiraBaseURL;
+        if (!baseURL) {
+            logseq.UI.showMsg('Jira base URL not set. Update in Plugin settings.')
+            throw new Error('Jira base URL not set.');
         }
 
         const creds = Buffer.from(`${logseq.settings?.jiraUsername}:${logseq.settings?.jiraAPIToken}`).toString("base64");
