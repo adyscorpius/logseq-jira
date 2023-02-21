@@ -2,7 +2,9 @@
 
 ## Logseq Jira Sync Plugin
 
-Bring Jira issue status and summaries to Logseq with this plugin. Check out the discussion on Logseq Forums by [clicking here](https://discuss.logseq.com/t/logseq-jira-plugin/12414?u=adit)
+Bring Jira issue status and summaries to Logseq with Logseq-Jira. Include important fields like Priority, Status, Assignee and Reporter as block properties to then query within Logseq as needed.
+
+Check out the discussion on Logseq Forums by [clicking here](https://discuss.logseq.com/t/logseq-jira-plugin/12414?u=adit)
 
 ## Quick Start
 
@@ -14,18 +16,19 @@ Start by using `ctrl+shift+j` in a block containing a JIRA issue key or link.
 
 ## Current Functionality
 
-1. Use the slash command "Update Jira Issue" to replace issue keys (PM-100, ISS-1432143, etc.) or issue links like subdomain.atlassian.net/browse/PM-100 with `[<status>|<issueKey>|<issueSummary>](https://orgname.atlassian.net/browse/<issueKey>)` format.
+1. Use the slash command "Update Jira Issue" or "Mod+Shift+J" to replace issue keys (PM-100, ISS-12143, etc.) or issue links like subdomain.atlassian.net/browse/PM-100 with `[<issueKey>|<issueSummary>](https://orgname.atlassian.net/browse/<issueKey>)` formats. Enable the option to add block properties to further enhance ticket details, all from within Logseq.
 
 ### Known Limitations
 
-1. Only works for the current block.
-2. Doesn't auto-refresh to keep issue status updated.
-3. Currently only supports Jira Cloud.
+1. Limited to current block.
+2. Statuses and issue details are not automatically updated. (Need to check performance impact).
+3. Supports Jira Cloud.
 
 ### Roadmap
 
 - [x]  Refresh summary on rerun on existing links.
-- [ ]  Auto refresh/update all links on current page.
+- [x]  Add more fields to help with context of the tickets
+- [ ]  Auto refresh/update all links when page is loaded.
 - [ ]  Auto refresh all Jira links across vault (need to verify performance impact on doing this).
 - [ ]  Create your own Link description format with Jira variables ( '{issueKey} - {status} - {summary}' )
 
