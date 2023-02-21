@@ -1,5 +1,18 @@
 import '@logseq/libs';
-import { SettingSchemaDesc } from '@logseq/libs/dist/LSPlugin.user';
+import { settings } from './settings';
+
+type Data = {
+    [issueKey: string]: {
+        text: string;
+        status: string;
+        type: string;
+        priority: string;
+        creator: string;
+        reporter: string;
+        assignee: string;
+        fixVersion: string;
+    };
+};
 
 /**
  * Main Logseq-Jira Function to register the plugin.
@@ -18,7 +31,7 @@ function main() {
         label: 'Refresh Jira',
         desc: 'Refresh Jira links in block',
         keybinding: { binding: 'mod+shift+j' }
-    }, (e) => {
+    }, () => {
         return updateJiraIssue();
     })
 
@@ -27,31 +40,16 @@ function main() {
 }
 
 
-type Data = {
-    [issueKey: string]: {
-      text: string;
-      status: string;
-      type: string;
-      priority: string;
-      creator: string;
-      reporter: string;
-      assignee: string;
-      fixVersion: string;
-    };
-  };
 
 // Regex declarations
-// DEV-1000
-
+// DEV-1001
+// https://company.atlassian.net/browse/DEV-1000
+// [Some Jira status text we could update](https://company.atlassian.net/browse/DEV-1000)
 const regexList = [
+    /(?<![\,\.\/\S])(?<issue>[A-Z][A-Z0-9]+-[0-9]+)(?!.?\])/gim,
 
-    // DEV-1001
-    /(?<![\,\.\/\S])(?<issue>[A-Z][A-Z0-9]+-[0-9]+)(?!.?\])/gim, 
-
-    // https://company.atlassian.net/browse/DEV-1000
     /(?<!\()(?<url>https*:\/\/.{1,25}.atlassian.net\/browse\/(?<issue>[A-Z][A-Z0-9]{1,6}-[0-9]{1,8}))(?!\))/gim,
 
-    // [Some Jira status text we could update](https://company.atlassian.net/browse/DEV-1000)
     /\[(?<description>[^\]]*)?\]\((?<url>https?:\/\/[A-Za-z0-9 ]+\.atlassian\.net\/browse\/(?<issue>[A-Za-z0-9\-]+))\)/gim
 ];
 
@@ -62,35 +60,55 @@ const issueTestRegex: RegExp = /([A-Z][A-Z0-9]+-[0-9]+)/gim
 
 // Primary function called by slash command
 async function updateJiraIssue() {
+
     try {
 
-        // Get current block value
         const currentBlock = await logseq.Editor.getCurrentBlock();
+
         let value = currentBlock?.content;
         const uuid = currentBlock?.uuid;
-        
-        if (!value || value.length < 3 || !issueTestRegex.test(value)) {                                               // TODO: Find a better logic?
+
+        if (!value || value.length < 3) {  // TODO: Find a better logic?
             logseq.UI.showMsg("Couldn't find a valid Jira issue key.", 'error');
             return;
         };
 
-        
-        const issuesList = getIssuesList(value);
+
+        const issuesList = extractIssues(value);
 
         if (!issuesList || issuesList.length < 1) {
-            logseq.UI.showMsg("Couldn't find any Jira issues.", 'error');
+            logseq.UI.showMsg("Couldn't find any Jira issues in this block.", 'error');
             return;
         };
 
-        
+
         const issues = await getIssues(issuesList);
-        
+
         const data = generateTextFromResponse(issues);
-        
+
         const newValue = await replaceAsync(value, data);
 
-        // const properties = {};      // Doesn't work cuz updateBlock won't also update properties in one click.  
+        await logseq.Editor.updateBlock(currentBlock.uuid, newValue);
 
+        if (issuesList?.length === 1) {
+
+            let issueKey = issuesList[0];
+
+            const { assignee, priority, fixVersion, status, reporter } = data[issueKey];
+
+            console.log("One issue found.");
+
+            const { jiraShowAssignee, jiraShowPriority, jiraShowFixVersion, jiraShowStatus, jiraShowReporter } = logseq.settings;
+
+            jiraShowAssignee && await logseq.Editor.upsertBlockProperty(uuid, "assignee", assignee);
+            jiraShowPriority && await logseq.Editor.upsertBlockProperty(uuid, "priority", priority);
+            jiraShowFixVersion && await logseq.Editor.upsertBlockProperty(uuid, "fix-version", fixVersion);
+            jiraShowStatus && await logseq.Editor.upsertBlockProperty(uuid, "status", status);
+            jiraShowReporter && await logseq.Editor.upsertBlockProperty(uuid, "reporter", reporter);
+        }
+
+        // When Logseq fixes their updateBlock function, this should be a single command.
+        // const properties = {};      // Doesn't work cuz updateBlock won't also update properties in one click.  
         // if (issuesList?.length === 1) {
         //     let issueKey = issuesList[0];
         //     console.log("One issue found.");
@@ -101,20 +119,6 @@ async function updateJiraIssue() {
         //     logseq.settings?.jiraShowReporter ? properties["reporter"] = data[issueKey].reporter : null;
         //     console.log(properties);
         // }
-
-        await logseq.Editor.updateBlock(currentBlock.uuid, newValue);
-
-        if (issuesList?.length === 1) {
-            let issueKey = issuesList[0];
-            console.log("One issue found.");
-            logseq.settings?.jiraShowAssignee && await logseq.Editor.upsertBlockProperty(uuid, "assignee", data[issueKey].assignee);
-            logseq.settings?.jiraShowPriority && await logseq.Editor.upsertBlockProperty(uuid, "priority", data[issueKey].priority);
-            logseq.settings?.jiraShowFixVersion && await logseq.Editor.upsertBlockProperty(uuid, "fix-version", data[issueKey].fixVersion);
-            logseq.settings?.jiraShowStatus && await logseq.Editor.upsertBlockProperty(uuid, "status", data[issueKey].status);
-            logseq.settings?.jiraShowReporter && await logseq.Editor.upsertBlockProperty(uuid, "reporter", data[issueKey].reporter);
-        }
-        
-        
         //await logseq.Editor.updateBlock(currentBlock.uuid, newValue, { properties: properties });
 
         logseq.UI.showMsg('Updated all JIRA links found.')
@@ -124,7 +128,7 @@ async function updateJiraIssue() {
 }
 
 // Get issues from block text.
-function getIssuesList(str: string): Array<string> {
+function extractIssues(str: string): Array<string> {
     return [...new Set(str.match(issueTestRegex))];
 }
 
@@ -132,29 +136,30 @@ function getIssuesList(str: string): Array<string> {
 async function getIssues(issuesList: Array<string>) {
 
     const promises = issuesList.map(async (issueKey: string) => {
-            if (!issueTestRegex.test(issueKey)) {
-                console.log(`logseq-jira: Badly structured issueKey ${issueKey}`);
+        if (!issueTestRegex.test(issueKey)) {
+            console.log(`logseq-jira: Badly structured issueKey ${issueKey}`);
+        }
+
+        const baseURL = logseq.settings?.jiraBaseURL;
+        if (!baseURL) {
+            logseq.UI.showMsg('Jira base URL not set. Update in Plugin settings.')
+            throw new Error('Jira base URL not set.');
+        }
+
+        const creds = Buffer.from(`${logseq.settings?.jiraUsername}:${logseq.settings?.jiraAPIToken}`).toString("base64");
+        const issueRest = `https://${baseURL}/rest/api/3/issue/${issueKey}`;
+        const jiraURL = `https://${baseURL}/browse/${issueKey}`;
+
+        let req = await fetch(issueRest, {
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': `Basic ${creds}`
             }
-    
-            const baseURL = logseq.settings?.jiraBaseURL;
-            if (!baseURL) {
-                logseq.UI.showMsg('Jira base URL not set. Update in Plugin settings.')
-                throw new Error('Jira base URL not set.');
-            }
-    
-            const creds = Buffer.from(`${logseq.settings?.jiraUsername}:${logseq.settings?.jiraAPIToken}`).toString("base64");
-            const issueRest = `https://${baseURL}/rest/api/3/issue/${issueKey}`;
-            const jiraURL = `https://${baseURL}/browse/${issueKey}`;
-            let req = await fetch(issueRest, {
-                headers: {
-                    'Accept': 'application/json',
-                    'Authorization': `Basic ${creds}`
-                }
-            });
-            let body = await req.json();
-            console.log(body);
-            return { issueKey, body, jiraURL }
-            }
+        });
+        let body = await req.json();
+        console.log(body);
+        return { issueKey, body, jiraURL }
+    }
     );
     return await Promise.all(promises);
 };
@@ -174,79 +179,19 @@ function generateTextFromResponse(responses: any[]): Data {
             fixVersion: response.body.fields.fixVersions[0]?.name || "None"
         };
     });
-    return data; 
+    return data;
 }
 
 // Helper function run regex replacements asynchronously and as soon as possible.
 async function replaceAsync(str: string, data: Data) {
     let newString = str;
     for (const regex of regexList) {
-            newString = newString.replace(regex, (match, ...args: any[]) => {
-                const { issue } = args.pop();
-                return data[issue].text;
-            });
+        newString = newString.replace(regex, (match, ...args: any[]) => {
+            const { issue } = args.pop();
+            return data[issue].text;
+        });
     }
     return newString;
 }
-
-const settings: SettingSchemaDesc[] = [
-    {
-        key: "jiraUsername",
-        description: "Your JIRA Username (Normally an email ID)",
-        type: "string",
-        default: "",
-        title: "JIRA Username",
-    },
-    {
-        key: "jiraAPIToken",
-        description: "Your JIRA API Token generated as per https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/",
-        type: "string",
-        default: "",
-        title: "JIRA API Token",
-    },
-    {
-        key: "jiraBaseURL",
-        description: "Base URL for your Jira instance in the format <orgname>.atlassian.net (Don't include the initial https:// and trailing /",
-        type: "string",
-        default: "orgname.atlassian.net",
-        title: "Base URL for your organization",
-    },
-    {
-        key: "jiraShowAssignee",
-        description: "Enable this to add Assignee to block properties.",
-        type: "boolean",
-        default: "false",
-        title: "Show Assignee",
-    },
-    {
-        key: "jiraShowPriority",
-        description: "Enable this to add Assignee to block properties.",
-        type: "boolean",
-        default: "false",
-        title: "Show Priority",
-    },
-    {
-        key: "jiraShowFixVersion",
-        description: "Enable this to add *Fix Version* to block properties.",
-        type: "boolean",
-        default: "false",
-        title: "Show Fix Version",
-    },
-    {
-        key: "jiraShowStatus",
-        description: "Enable this to add issue *Status* to block properties.",
-        type: "boolean",
-        default: "false",
-        title: "Show Ticket Status",
-    },
-    {
-        key: "jiraShowReporter",
-        description: "Enable this to add *Reporter* to block properties.",
-        type: "boolean",
-        default: "false",
-        title: "Show Reporter",
-    },
-];
-
 
 logseq.ready(main).catch(console.error);
