@@ -4,6 +4,7 @@ import { settings } from './settings';
 type Data = {
     [issueKey: string]: {
         text: string;
+        summary: string;
         status: string;
         type: string;
         priority: string;
@@ -86,42 +87,19 @@ async function updateJiraIssue() {
 
         const data = generateTextFromResponse(issues);
 
-        const newValue = await replaceAsync(value, data);
+        //if (issuesList?.length === 1) { FIXME: When logseq fixes issue, these can be done together.
+        if (logseq.settings.addToBlockProperties) {
 
-        await logseq.Editor.updateBlock(currentBlock.uuid, newValue);
+            let properties = genProperties(data[issuesList[0]]);
 
-        if (issuesList?.length === 1) {
-
-            let issueKey = issuesList[0];
-
-            const { assignee, priority, fixVersion, status, reporter } = data[issueKey];
-
-            console.log("One issue found.");
-
-            const { jiraShowAssignee, jiraShowPriority, jiraShowFixVersion, jiraShowStatus, jiraShowReporter } = logseq.settings;
-
-            jiraShowAssignee && await logseq.Editor.upsertBlockProperty(uuid, "assignee", assignee);
-            jiraShowPriority && await logseq.Editor.upsertBlockProperty(uuid, "priority", priority);
-            jiraShowFixVersion && await logseq.Editor.upsertBlockProperty(uuid, "fix-version", fixVersion);
-            jiraShowStatus && await logseq.Editor.upsertBlockProperty(uuid, "status", status);
-            jiraShowReporter && await logseq.Editor.upsertBlockProperty(uuid, "reporter", reporter);
+            Object.entries(properties).map( async ([key, value]) => {
+                await logseq.Editor.upsertBlockProperty(uuid, key, value)
+            })
+        } else {
+            const newValue = await replaceAsync(value, data);
+            await logseq.Editor.updateBlock(uuid, newValue);
         }
 
-        // When Logseq fixes their updateBlock function, this should be a single command.
-        // const properties = {};      // Doesn't work cuz updateBlock won't also update properties in one click.  
-        // if (issuesList?.length === 1) {
-        //     let issueKey = issuesList[0];
-        //     console.log("One issue found.");
-        //     logseq.settings?.jiraShowAssignee ? properties["assignee"] = data[issueKey].assignee || '' : null;
-        //     logseq.settings?.jiraShowPriority ? properties["priority"] = data[issueKey].priority : null;
-        //     logseq.settings?.jiraShowFixVersion ? properties["fix-version"] = data[issueKey].fixVersion || '' : null;
-        //     logseq.settings?.jiraShowStatus ? properties["status"] = data[issueKey].status : null;
-        //     logseq.settings?.jiraShowReporter ? properties["reporter"] = data[issueKey].reporter : null;
-        //     console.log(properties);
-        // }
-        //await logseq.Editor.updateBlock(currentBlock.uuid, newValue, { properties: properties });
-
-        logseq.UI.showMsg('Updated all JIRA links found.')
     } catch (e) {
         console.log('logseq-jira', e.message);
     }
@@ -157,7 +135,6 @@ async function getIssues(issuesList: Array<string>) {
             }
         });
         let body = await req.json();
-        console.log(body);
         return { issueKey, body, jiraURL }
     }
     );
@@ -170,6 +147,7 @@ function generateTextFromResponse(responses: any[]): Data {
     responses.forEach(response => {
         data[response.issueKey] = {
             text: `[${response.body.key}|${response.body.fields.summary}](${response.jiraURL})`,
+            summary: `[${response.body.fields.summary}](${response.jiraURL})` || "None",
             status: response.body.fields.status.name || "None",
             type: response.body.fields.issuetype.name || "None",
             priority: response.body.fields.priority.name || "None",
@@ -192,6 +170,27 @@ async function replaceAsync(str: string, data: Data) {
         });
     }
     return newString;
+}
+
+function genProperties(properties) {
+    const { assignee, priority, fixVersion, status, reporter, summary } = properties;
+    const { showAssignee,
+        showPriority, 
+        showFixVersion, 
+        showStatus, 
+        showReporter 
+    } = logseq.settings;
+    
+    let a = {}
+
+    a['summary'] = summary;
+    if (showAssignee) a['assignee'] = assignee;
+    if (showPriority) a['priority'] = priority;
+    if (showFixVersion) a['fix-version'] = fixVersion;
+    if (showStatus) a['status'] = status;
+    if (showReporter) a['reporter'] = reporter;
+
+    return a;
 }
 
 logseq.ready(main).catch(console.error);
