@@ -44,3 +44,8 @@ The plugin is available to download directly from Logseq's Plugins marketplace. 
 - `Load unpacked plugin` in Logseq Desktop client and select the folder for the plugin on your disk.
 - For updates, git pull the main branch and 'Reload Package' under Plugins > Logseq Jira.
 
+### Release process
+
+- Update version in package.json
+- Add all updates to master branch
+- Tag the latest commit with new version.
