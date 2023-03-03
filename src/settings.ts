@@ -64,4 +64,11 @@ export const settings: SettingSchemaDesc[] = [
         default: false,
         title: "",
     },
+    {
+        key: "showResolution",
+        description: "Block Properties: Show Resolution",
+        type: "boolean",
+        default: false,
+        title: "",
+    },
 ];

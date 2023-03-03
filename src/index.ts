@@ -12,6 +12,7 @@ type Data = {
         reporter: string;
         assignee: string;
         fixVersion: string;
+        resolution: string;
     };
 };
 
@@ -148,13 +149,14 @@ function generateTextFromResponse(responses: any[]): Data {
         data[response.issueKey] = {
             text: `[${response.body.key}|${response.body.fields.summary}](${response.jiraURL})`,
             summary: `[${response.body.fields.summary}](${response.jiraURL})` || "None",
-            status: response.body.fields.status.name || "None",
-            type: response.body.fields.issuetype.name || "None",
-            priority: response.body.fields.priority.name || "None",
-            creator: response.body.fields.creator.displayName || "None",
-            reporter: response.body.fields.reporter.displayName || "None",
+            status: response.body.fields.status?.name || "None",
+            type: response.body.fields.issuetype?.name || "None",
+            priority: response.body.fields.priority?.name || "None",
+            creator: response.body.fields.creator?.displayName || "None",
+            reporter: response.body.fields.reporter?.displayName || "None",
             assignee: response.body.fields.assignee?.displayName || "None",
-            fixVersion: response.body.fields.fixVersions[0]?.name || "None"
+            fixVersion: response.body.fields.fixVersions[0]?.name || "None",
+            resolution: response.body.fields.resolution?.name || null
         };
     });
     return data;
@@ -173,12 +175,13 @@ async function replaceAsync(str: string, data: Data) {
 }
 
 function genProperties(properties) {
-    const { assignee, priority, fixVersion, status, reporter, summary } = properties;
+    const { assignee, priority, fixVersion, status, reporter, summary, resolution } = properties;
     const { showAssignee,
         showPriority, 
         showFixVersion, 
         showStatus, 
-        showReporter 
+        showReporter,
+        showResolution
     } = logseq.settings;
     
     let a = {}
@@ -189,7 +192,7 @@ function genProperties(properties) {
     if (showFixVersion) a['fix-version'] = fixVersion;
     if (showStatus) a['status'] = status;
     if (showReporter) a['reporter'] = reporter;
-
+    if (showResolution && resolution) a['resolution'] = resolution
     return a;
 }
 
