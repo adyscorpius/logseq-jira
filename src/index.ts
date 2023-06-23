@@ -64,15 +64,15 @@ const issueTestRegex: RegExp = /([A-Z][A-Z0-9]+-[0-9]+)/gim
 async function updateJiraIssue() {
 
     try {
-
+        //console.log(logseq.settings);
         const currentBlock = await logseq.Editor.getCurrentBlock();
-
+        console.log(currentBlock);
         let value = currentBlock?.content;
         const uuid = currentBlock?.uuid;
 
         if (!value || value.length < 3) {  // TODO: Find a better logic?
             logseq.UI.showMsg("Couldn't find a valid Jira issue key.", 'error');
-            return;
+            throw new Error("Couldn't find a valid Jira issue key.");
         };
 
 
@@ -83,22 +83,22 @@ async function updateJiraIssue() {
             return;
         };
 
-
         const issues = await getIssues(issuesList);
 
         const data = generateTextFromResponse(issues);
 
+        let properties = genProperties(data[issuesList[0]]);
         //if (issuesList?.length === 1) { FIXME: When logseq fixes issue, these can be done together.
         if (logseq.settings.addToBlockProperties) {
-
-            let properties = genProperties(data[issuesList[0]]);
 
             Object.entries(properties).map( async ([key, value]) => {
                 await logseq.Editor.upsertBlockProperty(uuid, key, value)
             })
         } else {
             const newValue = await replaceAsync(value, data);
-            await logseq.Editor.updateBlock(uuid, newValue);
+            await logseq.Editor.updateBlock(uuid, newValue, {
+                properties
+            });
         }
 
     } catch (e) {
