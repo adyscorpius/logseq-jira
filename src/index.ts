@@ -104,23 +104,25 @@ function extractIssues(str: string): string[] {
 // Fetch Jira issues
 async function getIssues(issuesList: string[], useSecondOrg = false) {
   const baseURL = useSecondOrg ? logseq.settings.jiraBaseURL2 : logseq.settings.jiraBaseURL;
+  const apiVersion = logseq.settings?.jiraAPIVersion;
   if (!baseURL) {
     logseq.UI.showMsg('Jira base URL not set. Update in Plugin settings.');
     throw new Error('Jira base URL not set.');
   }
 
-  const creds = Buffer.from(
-    `${useSecondOrg ? logseq.settings.jiraUsername2 : logseq.settings.jiraUsername}:${useSecondOrg ? logseq.settings.jiraAPIToken2 : logseq.settings.jiraAPIToken}`
-  ).toString('base64');
+  const token = useSecondOrg ? logseq.settings?.jiraAPIToken2 : logseq.settings?.jiraAPIToken;
+  const user = useSecondOrg ? logseq.settings?.jiraUsername2 : logseq.settings?.jiraUsername;
+  const creds = Buffer.from(`${user}:${token}`).toString("base64");
 
   const requests = issuesList.map(async (issueKey: string) => {
     const issueRest = `https://${baseURL}/rest/api/3/issue/${issueKey}`;
     const jiraURL = `https://${baseURL}/browse/${issueKey}`;
+    const authHeader = apiVersion == 2 ? `Bearer ${token}` : `Basic ${creds}`;
 
     const response = await fetch(issueRest, {
       headers: {
         Accept: 'application/json',
-        Authorization: `Basic ${creds}`,
+        Authorization: authHeader,
       },
     });
     const body = await response.json();
