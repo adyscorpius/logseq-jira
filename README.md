@@ -22,7 +22,7 @@ Start by using `ctrl+shift+j` in a block containing a JIRA issue key or link.
 
 1. Limited to current block.
 2. Statuses and issue details are not automatically updated. (Need to check performance impact).
-3. Supports Jira Cloud.
+3. Supports **Jira Cloud only**. 
 
 ### Roadmap
 
