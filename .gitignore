@@ -1,3 +1,7 @@
+memory
+workspace
+file_list.txt
+prompt
 node_modules
 dist
 .parcel-cache
