@@ -28,6 +28,10 @@ function main() {
         return updateJiraIssue();
     })
 
+    logseq.Editor.registerSlashCommand('Update Jira Issue for 2nd Organization', (_) => {
+        return updateJiraIssue(true);
+    })
+
     logseq.App.registerCommand('refreshJira', {
         key: 'refreshJira',
         label: 'Refresh Jira',
@@ -61,7 +65,7 @@ const issueTestRegex: RegExp = /([A-Z][A-Z0-9]+-[0-9]+)/gim
 
 
 // Primary function called by slash command
-async function updateJiraIssue() {
+async function updateJiraIssue(useSecondOrg = false) {
 
     try {
         //console.log(logseq.settings);
@@ -83,7 +87,7 @@ async function updateJiraIssue() {
             return;
         };
 
-        const issues = await getIssues(issuesList);
+        const issues = await getIssues(issuesList, useSecondOrg);
 
         const data = generateTextFromResponse(issues);
 
@@ -112,20 +116,20 @@ function extractIssues(str: string): Array<string> {
 }
 
 // Get issues from Jira
-async function getIssues(issuesList: Array<string>) {
+async function getIssues(issuesList: Array<string>, useSecondOrg = false) {
 
     const promises = issuesList.map(async (issueKey: string) => {
         if (!issueTestRegex.test(issueKey)) {
             console.log(`logseq-jira: Badly structured issueKey ${issueKey}`);
         }
 
-        const baseURL = logseq.settings?.jiraBaseURL;
+        const baseURL = useSecondOrg ? logseq.settings?.jiraBaseURL2 : logseq.settings?.jiraBaseURL;
         if (!baseURL) {
             logseq.UI.showMsg('Jira base URL not set. Update in Plugin settings.')
             throw new Error('Jira base URL not set.');
         }
 
-        const creds = Buffer.from(`${logseq.settings?.jiraUsername}:${logseq.settings?.jiraAPIToken}`).toString("base64");
+        const creds = Buffer.from(`${useSecondOrg ? logseq.settings?.jiraUsername2 : logseq.settings?.jiraUsername}:${useSecondOrg ? logseq.settings?.jiraAPIToken2 : logseq.settings?.jiraAPIToken}`).toString("base64");
         const issueRest = `https://${baseURL}/rest/api/3/issue/${issueKey}`;
         const jiraURL = `https://${baseURL}/browse/${issueKey}`;
 

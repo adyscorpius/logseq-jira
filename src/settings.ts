@@ -71,4 +71,25 @@ export const settings: SettingSchemaDesc[] = [
         default: false,
         title: "",
     },
+    {
+        key: "jiraUsername2",
+        title: "JIRA Username for 2nd Organization",
+        description: "Your JIRA Username for the 2nd organization (Normally an email address)",
+        type: "string",
+        default: "",
+    },
+    {
+        key: "jiraAPIToken2",
+        title: "JIRA API Token for 2nd Organization",
+        description: "Your JIRA API Token for the 2nd organization generated as per https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/",
+        type: "string",
+        default: "",
+    },
+    {
+        key: "jiraBaseURL2",
+        title: "Base URL for your 2nd organization",
+        description: "Base URL for your 2nd Jira instance in the format <orgname>.atlassian.net (Don't include the initial https:// and trailing /",
+        type: "string",
+        default: "orgname2.atlassian.net",
+    }
 ];
