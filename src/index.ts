@@ -30,16 +30,16 @@ function main() {
 
     if (logseq.settings.enableSecond) {
 
-    logseq.Editor.registerSlashCommand('Update Jira Issue for 2nd Organization', (_) => {
-        return updateJiraIssue(true);
-    })
+        logseq.Editor.registerSlashCommand('Update Jira Issue for 2nd Organization', (_) => {
+            return updateJiraIssue(true);
+        })
     }
 
     logseq.App.registerCommand('refreshJira', {
         key: 'refreshJira',
         label: 'Refresh Jira',
         desc: 'Refresh Jira links in block',
-        keybinding: { binding: 'mod+shift+j' }
+        // keybinding: { binding: 'mod+shift+j' }
     }, () => {
         return updateJiraIssue();
     })
@@ -118,12 +118,7 @@ function extractIssues(str: string): Array<string> {
 
 // Get issues from Jira
 async function getIssues(issuesList: Array<string>, useSecondOrg = false) {
-
     const promises = issuesList.map(async (issueKey: string) => {
-        if (!issueTestRegex.test(issueKey)) {
-            console.log(`logseq-jira: Badly structured issueKey ${issueKey}`);
-        }
-
         const baseURL = useSecondOrg ? logseq.settings?.jiraBaseURL2 : logseq.settings?.jiraBaseURL;
         if (!baseURL) {
             logseq.UI.showMsg('Jira base URL not set. Update in Plugin settings.')
@@ -182,13 +177,13 @@ async function replaceAsync(str: string, data: Data) {
 function genProperties(properties) {
     const { assignee, priority, fixVersion, status, reporter, summary, resolution } = properties;
     const { showAssignee,
-        showPriority, 
-        showFixVersion, 
-        showStatus, 
+        showPriority,
+        showFixVersion,
+        showStatus,
         showReporter,
         showResolution
     } = logseq.settings;
-    
+
     let a = {}
 
     a['summary'] = summary;
