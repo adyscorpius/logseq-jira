@@ -2,13 +2,6 @@ import { SettingSchemaDesc } from '@logseq/libs/dist/LSPlugin.user';
 
 export const settings: SettingSchemaDesc[] = [
     {
-        key: "addToBlockProperties",
-        title: "Add JIRA details as block properties",
-        description: "Enable this to add details to block properties, disable to update Key & Summary inline.",
-        type: "boolean",
-        default: false,
-    },
-    {
         key: "jiraUsername",
         title: "JIRA Username",
         description: "Your JIRA Username (Normally an email address)",
@@ -28,6 +21,20 @@ export const settings: SettingSchemaDesc[] = [
         description: "Base URL for your Jira instance in the format <orgname>.atlassian.net (Don't include the initial https:// and trailing /",
         type: "string",
         default: "orgname.atlassian.net",
+    },
+    {
+        key: "enableBlockPropertiesHeading",
+        title: "Block properties",
+        description: "Configure block properties to enable",
+        type: "heading",
+        default: null
+    },
+    {
+        key: "addToBlockProperties",
+        title: "Add JIRA details as block properties",
+        description: "Enable this to add details to block properties, disable to update Key & Summary inline.",
+        type: "boolean",
+        default: false,
     },
     {
         key: "showAssignee",
