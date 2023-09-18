@@ -79,6 +79,20 @@ export const settings: SettingSchemaDesc[] = [
         title: "",
     },
     {
+        key: "secondOrgHeading",
+        title: "Second organization settings",
+        description: "Enable a second Jira organization",
+        type: "heading",
+        default: null
+    },
+    {
+        key: "enableSecond",
+        description: "Enable second organization",
+        type: "boolean",
+        default: false,
+        title: "Enable a second organization and it's own slash command.",
+    },
+    {
         key: "jiraUsername2",
         title: "JIRA Username for 2nd Organization",
         description: "Your JIRA Username for the 2nd organization (Normally an email address)",

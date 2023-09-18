@@ -28,9 +28,12 @@ function main() {
         return updateJiraIssue();
     })
 
+    if (logseq.settings.enableSecond) {
+
     logseq.Editor.registerSlashCommand('Update Jira Issue for 2nd Organization', (_) => {
         return updateJiraIssue(true);
     })
+    }
 
     logseq.App.registerCommand('refreshJira', {
         key: 'refreshJira',
@@ -68,9 +71,8 @@ const issueTestRegex: RegExp = /([A-Z][A-Z0-9]+-[0-9]+)/gim
 async function updateJiraIssue(useSecondOrg = false) {
 
     try {
-        //console.log(logseq.settings);
+        
         const currentBlock = await logseq.Editor.getCurrentBlock();
-        console.log(currentBlock);
         let value = currentBlock?.content;
         const uuid = currentBlock?.uuid;
 
@@ -78,7 +80,6 @@ async function updateJiraIssue(useSecondOrg = false) {
             logseq.UI.showMsg("Couldn't find a valid Jira issue key.", 'error');
             throw new Error("Couldn't find a valid Jira issue key.");
         };
-
 
         const issuesList = extractIssues(value);
 
@@ -95,7 +96,7 @@ async function updateJiraIssue(useSecondOrg = false) {
         //if (issuesList?.length === 1) { FIXME: When logseq fixes issue, these can be done together.
         if (logseq.settings.addToBlockProperties) {
 
-            Object.entries(properties).map( async ([key, value]) => {
+            Object.entries(properties).map(async ([key, value]) => {
                 await logseq.Editor.upsertBlockProperty(uuid, key, value)
             })
         } else {
