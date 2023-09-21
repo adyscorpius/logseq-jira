@@ -1,6 +1,6 @@
 {
   "name": "logseq-jira",
-  "version": "0.0.9",
+  "version": "0.1.1",
   "description": "Keep Jira issue status synced with Logseq",
   "main": "dist/index.html",
   "targets": {
