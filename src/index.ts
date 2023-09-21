@@ -94,6 +94,11 @@ async function updateJiraIssue(useSecondOrg = false) {
 
         let properties = genProperties(data[issuesList[0]]);
         //if (issuesList?.length === 1) { FIXME: When logseq fixes issue, these can be done together.
+        
+        let newValue;
+        
+        logseq.settings.updateInlineText ? newValue = await replaceAsync(value, data) : newValue = value;
+        
         if (logseq.settings.addToBlockProperties) {
             newValue = formatTextBlock(newValue, properties)
         }

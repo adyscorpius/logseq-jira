@@ -23,6 +23,13 @@ export const settings: SettingSchemaDesc[] = [
         default: "orgname.atlassian.net",
     },
     {
+        key: "updateInlineText",
+        description: "Update Jira ticket details inline",
+        type: "boolean",
+        default: true,
+        title: "Update tickets found with hyperlinked summary. This is the default behaviour of Logseq-jira.",
+    },
+    {
         key: "enableBlockPropertiesHeading",
         title: "Block properties",
         description: "Configure block properties to enable",
