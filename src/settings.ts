@@ -2,6 +2,13 @@ import { SettingSchemaDesc } from '@logseq/libs/dist/LSPlugin.user';
 
 export const settings: SettingSchemaDesc[] = [
     {
+        key: "primarySettings",
+        title: "Primary Settings",
+        description: "Configure the primary Jira account.",
+        type: "heading",
+        default: null
+    },
+    {
         key: "jiraUsername",
         title: "JIRA Username",
         description: "Your JIRA Username (Normally an email address)",
@@ -32,7 +39,7 @@ export const settings: SettingSchemaDesc[] = [
     {
         key: "enableBlockPropertiesHeading",
         title: "Block properties",
-        description: "Configure block properties to enable",
+        description: "Configure the block properties to show for the text block. Works well if each issue is in it's own block.",
         type: "heading",
         default: null
     },
@@ -95,17 +102,17 @@ export const settings: SettingSchemaDesc[] = [
     },
     {
         key: "secondOrgHeading",
-        title: "Second organization settings",
-        description: "Enable a second Jira organization",
+        title: "Optional: Second organization",
+        description: "Settings for 2nd Jira organization.",
         type: "heading",
         default: null
     },
     {
         key: "enableSecond",
-        description: "Enable second organization",
+        description: "Enable support for second organization",
         type: "boolean",
         default: false,
-        title: "Enable a second organization and it's own slash command.",
+        title: "Reload the plugin or restart Logseq after changing the value.",
     },
     {
         key: "jiraUsername2",
