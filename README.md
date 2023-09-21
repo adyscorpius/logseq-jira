@@ -2,13 +2,11 @@
 
 ## Logseq Jira Sync Plugin
 
-Bring Jira issue status and summaries to Logseq with Logseq-Jira. Include important fields like Priority, Status, Assignee and Reporter as block properties to then query within Logseq as needed.
+Are you tired of copying Jira links, only to not remember which Jira is it? What about getting updates without clicking on each link? Or querying blocks within Logseq based on ticket status?
+
+Bring your Jira issue status and summaries into Logseq with Logseq-Jira. Include important fields like Priority, Status, Assignee and Reporter as block properties to then query within Logseq as needed.
 
 Check out the discussion on Logseq Forums by [clicking here](https://discuss.logseq.com/t/logseq-jira-plugin/12414?u=adit)
-
-## Quick Start
-
-Start by using `ctrl+shift+j` in a block containing a JIRA issue key or link.
 
 ## What it does?
 
@@ -16,18 +14,20 @@ Start by using `ctrl+shift+j` in a block containing a JIRA issue key or link.
 
 ## Current Functionality
 
-1. Use the slash command "Update Jira Issue" or "Mod+Shift+J" to replace issue keys (PM-100, ISS-12143, etc.) or issue links like subdomain.atlassian.net/browse/PM-100 with `[<issueKey>|<issueSummary>](https://orgname.atlassian.net/browse/<issueKey>)` formats. Enable the option to add block properties to further enhance ticket details, all from within Logseq.
+1. Use the slash command "Update Jira Issue" to replace issue keys (PM-100, ISS-12143, etc.) or Jira issue links like subdomain.atlassian.net/browse/PM-100 with `[<issueKey>|<issueSummary>](https://orgname.atlassian.net/browse/<issueKey>)` formats.
+2. Use optional block properties to keep the text as in, but add key issue fields as block properties.
+3. *NEW* Supports two Jira Cloud instances. Keep your work JIRA separate from your personal JIRA.
 
 ### Known Limitations
 
-1. Limited to current block.
-2. Statuses and issue details are not automatically updated. (Need to check performance impact).
+1. Earlier issue details are not automatically updated. (Need to check performance impact).
 3. Supports **Jira Cloud only**. 
 
 ### Roadmap
 
-- [x]  Refresh summary on rerun on existing links.
-- [x]  Add more fields to help with context of the tickets
+- [X]  Refresh summary on rerun on existing links.
+- [X]  Add more fields to help with context of the tickets
+- [X]  Support for multiple organizations.
 - [ ]  Auto refresh/update all links when page is loaded.
 - [ ]  Auto refresh all Jira links across vault (need to verify performance impact on doing this).
 - [ ]  Create your own Link description format with Jira variables ( '{issueKey} - {status} - {summary}' )
