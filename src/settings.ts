@@ -36,6 +36,14 @@ export const settings: SettingSchemaDesc[] = [
         type: "boolean",
         default: false,
     },
+    
+    {
+        key: "showSummary",
+        description: "Block Properties: Show Summary",
+        type: "boolean",
+        default: false,
+        title: "",
+    },
     {
         key: "showAssignee",
         description: "Block Properties: Show Assignee",

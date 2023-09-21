@@ -198,7 +198,9 @@ function formatTextBlock(input: string, keyValuePairs: { [key: string]: string }
 
 function genProperties(properties) {
     const { assignee, priority, fixVersion, status, reporter, summary, resolution } = properties;
-    const { showAssignee,
+    const { 
+        showSummary, 
+        showAssignee,
         showPriority,
         showFixVersion,
         showStatus,
@@ -208,7 +210,7 @@ function genProperties(properties) {
 
     let a = {}
 
-    a['summary'] = summary;
+    if (showSummary) a['summary'] = summary;
     if (showAssignee) a['assignee'] = assignee;
     if (showPriority) a['priority'] = priority;
     if (showFixVersion) a['fix-version'] = fixVersion;
