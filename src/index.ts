@@ -95,17 +95,10 @@ async function updateJiraIssue(useSecondOrg = false) {
         let properties = genProperties(data[issuesList[0]]);
         //if (issuesList?.length === 1) { FIXME: When logseq fixes issue, these can be done together.
         if (logseq.settings.addToBlockProperties) {
-
-            Object.entries(properties).map(async ([key, value]) => {
-                await logseq.Editor.upsertBlockProperty(uuid, key, value)
-            })
-        } else {
-            const newValue = await replaceAsync(value, data);
-            await logseq.Editor.updateBlock(uuid, newValue, {
-                properties
-            });
+            newValue = formatTextBlock(newValue, properties)
         }
 
+        await logseq.Editor.updateBlock(uuid, newValue);
     } catch (e) {
         console.log('logseq-jira', e.message);
     }
@@ -173,6 +166,35 @@ async function replaceAsync(str: string, data: Data) {
     }
     return newString;
 }
+
+function formatTextBlock(input: string, keyValuePairs: { [key: string]: string }): string {
+    const lines = input.split('\n');
+    const existingKeys = new Set<string>();
+  
+    for (const line of lines) {
+      const separatorIndex = line.indexOf('::');
+      if (separatorIndex !== -1) {
+        const key = line.slice(0, separatorIndex).trim();
+        existingKeys.add(key);
+      }
+    }
+  
+    let formattedText = input;
+  
+    for (const key in keyValuePairs) {
+      if (keyValuePairs.hasOwnProperty(key)) {
+        if (!existingKeys.has(key)) {
+          formattedText += `\n${key}:: ${keyValuePairs[key]}`;
+          existingKeys.add(key);
+        } else {
+          const regex = new RegExp(`${key}::.*`, 'g');
+          formattedText = formattedText.replace(regex, `${key}:: ${keyValuePairs[key]}`);
+        }
+      }
+    }
+  
+    return formattedText;
+  }
 
 function genProperties(properties) {
     const { assignee, priority, fixVersion, status, reporter, summary, resolution } = properties;
