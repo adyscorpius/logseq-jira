@@ -2,9 +2,8 @@ name: Build plugin
 
 on:
   push:
-    # Sequence of patterns matched against refs/tags
     tags:
-      - "*" # Push events to matching any tag format, i.e. 1.0, 20.15.10
+      - "*"
 
 env:
   PLUGIN_NAME: logseq-jira
@@ -14,11 +13,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v2.4.2
       - name: Use Node.js
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v2.5.1
         with:
-          node-version: "16.x" # You might need to adjust this value to your own version
+          node-version: "16.x"
       - name: Build
         id: build
         run: |
@@ -30,9 +29,8 @@ jobs:
           zip -r ${{ env.PLUGIN_NAME }}.zip ${{ env.PLUGIN_NAME }}
           ls
           echo "::set-output name=tag_name::$(git tag --sort version:refname | tail -n 1)"
-
       - name: Create Release
-        uses: ncipollo/release-action@v1
+        uses: ncipollo/release-action@v1.1.0
         id: create_release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -44,7 +42,7 @@ jobs:
 
       - name: Upload zip file
         id: upload_zip
-        uses: actions/upload-release-asset@v1
+        uses: actions/upload-release-asset@v1.0.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -55,7 +53,7 @@ jobs:
 
       - name: Upload package.json
         id: upload_metadata
-        uses: actions/upload-release-asset@v1
+        uses: actions/upload-release-asset@v1.0.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
