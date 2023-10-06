@@ -29,7 +29,6 @@ function main() {
     })
 
     if (logseq.settings.enableSecond) {
-
         logseq.Editor.registerSlashCommand('Update Jira Issue for 2nd Organization', (_) => {
             return updateJiraIssue(true);
         })
@@ -137,7 +136,13 @@ async function getIssues(issuesList: Array<string>, useSecondOrg = false) {
         return { issueKey, body, jiraURL }
     }
     );
-    return await Promise.all(promises);
+    try {
+        let result = await Promise.all(promises); 
+        return result;
+    } catch (err) {
+        console.log(err.message);
+    }
+    
 };
 
 //Generate markdown text from results
