@@ -30,6 +30,13 @@ export const settings: SettingSchemaDesc[] = [
         default: "orgname.atlassian.net",
     },
     {
+        key: "jiraAPIVersion",
+        title: "JIRA API version for your organization",
+        description: "The JIRA REST API version to use. 3 for JIRA Cloud, often 2 for on-premise instances.",
+        type: "string",
+        default: "3",
+    },
+    {
         key: "updateInlineText",
         description: "Update Jira ticket details inline",
         type: "boolean",
