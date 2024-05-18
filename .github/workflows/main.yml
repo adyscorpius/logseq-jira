@@ -28,7 +28,7 @@ jobs:
         run: pnpm install
 
       - name: Build
-        run: pnpm build:plugin
+        run: pnpm build
 
       - name: Release
         env:
