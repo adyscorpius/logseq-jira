@@ -1,17 +1,25 @@
 {
-  "name": "logseq-plugin-template-react",
-  "version": "0.0.0",
+  "name": "logseq-jira",
+  "version": "0.2.0",
+  "description": "Keep Jira issue status synced with Logseq",
   "main": "dist/index.html",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preinstall": "npx only-allow pnpm"
   },
+  "keywords": [
+    "logseq",
+    "logseq plugin",
+    "logseq JIRA integration",
+    "jira"
+  ],
+  "author": "adyscorpius",
   "license": "MIT",
   "dependencies": {
-    "@logseq/libs": "^0.0.14",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "@logseq/libs": "^0.0.17",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@semantic-release/changelog": "6.0.3",
@@ -37,7 +45,12 @@
     "vite-plugin-logseq": "1.1.2"
   },
   "logseq": {
-    "id": "_pengx17-logseq-template-react",
-    "icon": "./logo.svg"
-  }
+    "id": "logseq-jira",
+    "title": "Logseq Jira Sync",
+    "author": "adyscorpius",
+    "repository": "adyscorpius/logseq-jira",
+    "icon": "jira.png",
+    "description": "Beautify and sync your Jira links in Logseq."
+  },
+  "packageManager": "pnpm@9.1.1+sha512.14e915759c11f77eac07faba4d019c193ec8637229e62ec99eefb7cf3c3b75c64447882b7c485142451ee3a6b408059cdfb7b7fa0341b975f12d0f7629c71195"
 }
