@@ -7,6 +7,7 @@ import "./index.css";
 import { settings } from './settings';
 import type { Settings } from './models';
 import { logseq as PL } from "../package.json";
+import { extractIssues, regexList, getAuthHeader } from "./utils";
 
 
 // @ts-expect-error
@@ -91,16 +92,6 @@ async function main() {
 
 }
 
-// Regex declarations
-const regexList = [
-  /(?<![\,\.\/\S])(?<issue>[A-Z][A-Z0-9]+-[0-9]+)(?!.?\])/gim,
-  /(?<!\()(?<url>https*:\/\/.{1,25}.atlassian.net\/browse\/(?<issue>[A-Z][A-Z0-9]{1,6}-[0-9]{1,8}))(?!\))/gim,
-  /\[(?<description>[^\]]*)?\]\((?<url>https?:\/\/[A-Za-z0-9 ]+\.atlassian\.net\/browse\/(?<issue>[A-Za-z0-9\-]+))\)/gim,
-];
-
-// Test regex for issue keys
-const issueTestRegex: RegExp = /([A-Z][A-Z0-9]+-[0-9]+)/gim;
-
 // Main function to update Jira issues
 async function updateJiraIssue(useSecondOrg: boolean = false): Promise<void> {
   try {
@@ -120,11 +111,8 @@ async function updateJiraIssue(useSecondOrg: boolean = false): Promise<void> {
       logseq.UI.showMsg("Couldn't find any Jira issues in this block.", 'error');
       return;
     }
-    
-    console.log(issuesList); // WORKS
 
     const issues = await getIssues(issuesList, useSecondOrg);
-
 
     const data = generateTextFromResponse(issues);
     console.log(data);
@@ -132,7 +120,6 @@ async function updateJiraIssue(useSecondOrg: boolean = false): Promise<void> {
     if (logseq.settings?.updateInlineText) {
       newValue = await replaceAsync(value, data);
     }
-    console.log(newValue);
 
     if (logseq.settings?.addToBlockProperties) {
       const properties = genProperties(data[issuesList[0]]);
@@ -145,29 +132,26 @@ async function updateJiraIssue(useSecondOrg: boolean = false): Promise<void> {
   }
 }
 
-// Extract issues from block text
-function extractIssues(str: string): string[] {
-  return [...new Set(str.match(issueTestRegex))];
-}
-
 // Fetch Jira issues
 async function getIssues(issuesList: Array<string>, useSecondOrg = false) {
+
   const baseURL = useSecondOrg ? logseq.settings?.jiraBaseURL2 : logseq.settings?.jiraBaseURL;
+  const token = useSecondOrg ? logseq.settings?.jiraAPIToken2 : logseq.settings?.jiraAPIToken;
+  const user = useSecondOrg ? logseq.settings?.jiraUsername2 : logseq.settings?.jiraUsername;  
   const apiVersion = logseq.settings?.jiraAPIVersion || "3";
 
-  if (!baseURL) {
-      logseq.UI.showMsg('Jira base URL not set. Update in Plugin settings.')
+  if (!baseURL || !token || !user) {
+      logseq.UI.showMsg('Jira credentials not set. Update in Plugin settings.')
       throw new Error('Jira base URL not set.');
   }
 
-  const token = useSecondOrg ? logseq.settings?.jiraAPIToken2 : logseq.settings?.jiraAPIToken;
-  const user = useSecondOrg ? logseq.settings?.jiraUsername2 : logseq.settings?.jiraUsername;
-  const creds = btoa(`${user}:${token}`);
+  const creds: string = btoa(`${user}:${token}`);
+  const authHeader = getAuthHeader(useSecondOrg, token, user, creds);
 
   const requests = issuesList.map(async (issueKey: string) => { 
       const issueRest = `https://${baseURL}/rest/api/${apiVersion}/issue/${issueKey}`;
       const jiraURL = `https://${baseURL}/browse/${issueKey}`;
-      const authHeader = apiVersion == 2 ? `Bearer ${token}` : `Basic ${creds}`;
+
       let response = await fetch(issueRest, {
           headers: {
               'Accept': 'application/json',
@@ -185,6 +169,7 @@ async function getIssues(issuesList: Array<string>, useSecondOrg = false) {
 // Generate markdown text from response data
 function generateTextFromResponse(responses: any[]): Data {
   const data: Data = {};
+
   responses.forEach((response) => {
     data[response.issueKey] = {
       text: `[${response.body.key}|${response.body.fields.summary}](${response.jiraURL})`,
@@ -199,8 +184,6 @@ function generateTextFromResponse(responses: any[]): Data {
       resolution: response.body.fields.resolution?.name ?? null,
     };
   });
-
-  console.log(data);
 
   return data;
 }
@@ -270,7 +253,6 @@ function genProperties(properties: any): Record<string, string> {
 
   return propertyObject;
 }
-
 
 
 logseq.ready(main).catch(console.error);

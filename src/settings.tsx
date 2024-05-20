@@ -23,6 +23,15 @@ export const settings: SettingSchemaDesc[] = [
         default: "",
     },
     {
+        key: "jiraAuthType",
+        title: "JIRA Authentication Type",
+        description: "Use Bearer for PAT, Basic for OAuth Token",
+        type: 'enum',
+        enumPicker: "radio",
+        enumChoices: ["Basic Auth", "PAT"],
+        default: "Basic Auth"
+    },
+    {
         key: "jiraBaseURL",
         title: "Base URL for your organization",
         description: "Base URL for your Jira instance in the format <orgname>.atlassian.net (Don't include the initial https:// and trailing /",
@@ -57,7 +66,6 @@ export const settings: SettingSchemaDesc[] = [
         type: "boolean",
         default: false,
     },
-    
     {
         key: "showSummary",
         description: "Block Properties: Show Summary",
@@ -114,6 +122,9 @@ export const settings: SettingSchemaDesc[] = [
         type: "heading",
         default: null
     },
+
+// 2nd Account settings
+
     {
         key: "enableSecond",
         description: "Enable support for second organization",
@@ -127,6 +138,15 @@ export const settings: SettingSchemaDesc[] = [
         description: "Your JIRA Username for the 2nd organization (Normally an email address)",
         type: "string",
         default: "",
+    },
+    {
+        key: "jiraAuthType2",
+        title: "JIRA Authentication Style",
+        description: "Your JIRA API Token generated as per https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/",
+        type: 'enum',
+        enumPicker: "radio",
+        enumChoices: ["Basic Auth", "PAT"],
+        default: "Basic Auth"
     },
     {
         key: "jiraAPIToken2",
