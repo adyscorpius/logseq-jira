@@ -167,7 +167,7 @@ async function getIssues(issuesList: Array<string>, useSecondOrg = false) {
   const requests = issuesList.map(async (issueKey: string) => { 
       const issueRest = `https://${baseURL}/rest/api/${apiVersion}/issue/${issueKey}`;
       const jiraURL = `https://${baseURL}/browse/${issueKey}`;
-      const authHeader = apiVersion == 2 ? `Basic ${creds}` : `Bearer ${token}`;
+      const authHeader = apiVersion == 2 ? `Bearer ${token}` : `Basic ${creds}`;
       let response = await fetch(issueRest, {
           headers: {
               'Accept': 'application/json',
