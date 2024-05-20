@@ -35,10 +35,9 @@ export const issueTestRegex: RegExp = /([A-Z][A-Z0-9]+-[0-9]+)/gim;
 export function getAuthHeader(secondOrg: boolean, token: any, user: any, creds: string): string {
   const authType = secondOrg ? logseq.settings?.getAuthType2 : logseq.settings?.getAuthType;
   let authHeader;
-  if (authType === "Basic Auth")
+  if (authType === "PAT")  // For PAT https://developer.atlassian.com/server/jira/platform/personal-access-token/#personal-access-token
     authHeader = `Bearer ${token}`;
-
-  else
+  else // Essential Basic Authentication https://developer.atlassian.com/server/jira/platform/basic-authentication/#basic-authentication
     authHeader = `Basic ${creds}`;
   return authHeader;
 }// Extract issues from block text

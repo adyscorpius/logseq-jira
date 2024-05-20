@@ -138,7 +138,7 @@ async function getIssues(issuesList: Array<string>, useSecondOrg = false) {
   const baseURL = useSecondOrg ? logseq.settings?.jiraBaseURL2 : logseq.settings?.jiraBaseURL;
   const token = useSecondOrg ? logseq.settings?.jiraAPIToken2 : logseq.settings?.jiraAPIToken;
   const user = useSecondOrg ? logseq.settings?.jiraUsername2 : logseq.settings?.jiraUsername;  
-  const apiVersion = logseq.settings?.jiraAPIVersion || "3";
+  const apiVersion = useSecondOrg ? logseq.settings?.jiraAPIVersion2 : logseq.settings?.jiraAPIVersion || "3";
 
   if (!baseURL || !token || !user) {
       logseq.UI.showMsg('Jira credentials not set. Update in Plugin settings.')
