@@ -7,7 +7,7 @@ import "./index.css";
 import { settings } from './settings';
 import type { Settings } from './models';
 import { logseq as PL } from "../package.json";
-import { extractIssues as extractIssueKeys, regexes, getAuthHeader } from "./utils";
+import { extractIssues as extractIssueKeys, statusCategoryGenerator, regexes, getAuthHeader } from "./utils";
 
 // Add Axios and support caching.
 import Axios from 'axios';
@@ -129,8 +129,8 @@ async function getJQLResults(useSecondOrg: boolean = false) {
     })
     
     if (!!block) {
-      const outputBlocks = response.map((row: any) => `[${row.body.key}|${row.body.fields.summary}](${row.jiraURL})`)
-
+      
+      const outputBlocks = response.map((row: any) => `${statusCategoryGenerator(row.body.fields.status.statusCategory.colorName)} - ${row.body.fields.status.statusCategory.name} [${row.body.key}|${row.body.fields.summary}](${row.jiraURL})`)
       await logseq.Editor.insertBatchBlock(
         block.uuid, 
         outputBlocks.map((_uuid: any) => ({
@@ -244,7 +244,7 @@ function generateTextFromResponse(responses: any[]): Data {
             /*
             created,
             issuelinks,
-            statuscategory.
+            statuscategory,
             statuscategorychangedate,
             project: {
               key,
