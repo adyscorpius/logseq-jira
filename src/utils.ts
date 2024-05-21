@@ -41,6 +41,7 @@ export function getAuthHeader(secondOrg: boolean, token: any, user: any, creds: 
     authHeader = `Basic ${creds}`;
   return authHeader;
 }// Extract issues from block text
+
 export function extractIssues(str: string): string[] {
   return [...new Set(str.match(issueTestRegex))];
 }

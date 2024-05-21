@@ -80,6 +80,10 @@ async function main() {
   //   `,
   // });
 
+  logseq.Editor.registerSlashCommand('Pull JQL results', async() => {
+    await getJQLResults();
+  })
+
   logseq.useSettingsSchema(settings);
 
   logseq.Editor.registerSlashCommand('Update Jira Issue', async () => {
@@ -92,7 +96,52 @@ async function main() {
       await updateJiraIssue(true);
     });
   }
+}
 
+async function getJQLResults(useSecondOrg: boolean = false) {
+
+  const block = await logseq.Editor.getCurrentBlock();
+
+  const query = logseq.settings?.jqlQuery ;
+  const baseURL = useSecondOrg ? logseq.settings?.jiraBaseURL2 : logseq.settings?.jiraBaseURL;
+  const token = useSecondOrg ? logseq.settings?.jiraAPIToken2 : logseq.settings?.jiraAPIToken;
+  const user = useSecondOrg ? logseq.settings?.jiraUsername2 : logseq.settings?.jiraUsername;
+  const apiVersion = useSecondOrg ? logseq.settings?.jiraAPIVersion2 : logseq.settings?.jiraAPIVersion || "3";
+
+  if (!baseURL || !token || !user) {
+    logseq.UI.showMsg('Jira credentials not set. Update in Plugin settings.')
+    throw new Error('Jira base URL not set.');
+  }
+
+  const creds: string = btoa(`${user}:${token}`);
+  const authHeader = getAuthHeader(useSecondOrg, token, user, creds);
+    const jqlQuery = `https://${baseURL}/rest/api/${apiVersion}/search?jql=${query}`;
+    const body = await axios.get(jqlQuery, {
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': authHeader
+      }
+    });
+    
+    const response = body.data.issues.map((issue: any) => {
+      const jiraURL = `https://${baseURL}/browse/${issue.key}`
+      return {body: issue, jiraURL }
+    })
+    
+    if (!!block) {
+      const outputBlocks = response.map((row: any) => `[${row.body.key}|${row.body.fields.summary}](${row.jiraURL})`)
+
+      await logseq.Editor.insertBatchBlock(
+        block.uuid, 
+        outputBlocks.map((_uuid: any) => ({
+          content: `${_uuid}`,
+        })),
+      {
+        before: false,
+        sibling: false
+      });
+    }
+    
 
 }
 
@@ -162,7 +211,7 @@ async function getIssues(issues: Array<string>, useSecondOrg = false) {
       }
     });
 
-    return { issueKey, body, jiraURL }
+    return { body, jiraURL }
   }
   );
 
