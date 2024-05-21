@@ -23,7 +23,7 @@ export const useAppVisible = () => {
   return React.useSyncExternalStore(subscribeToUIVisible, () => _visible);
 };
 // Regex declarations
-export const regexList = [
+export const regexes = [
   /(?<![\,\.\/\S])(?<issue>[A-Z][A-Z0-9]+-[0-9]+)(?!.?\])/gim,
   /(?<!\()(?<url>https*:\/\/.{1,25}.atlassian.net\/browse\/(?<issue>[A-Z][A-Z0-9]{1,6}-[0-9]{1,8}))(?!\))/gim,
   /\[(?<description>[^\]]*)?\]\((?<url>https?:\/\/[A-Za-z0-9 ]+\.atlassian\.net\/browse\/(?<issue>[A-Za-z0-9\-]+))\)/gim,
