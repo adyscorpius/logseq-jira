@@ -100,20 +100,19 @@ async function main() {
 async function updateJiraIssue(useSecondOrg: boolean = false): Promise<void> {
   try {
     const currentBlock = await logseq.Editor.getCurrentBlock();
+    const value = await logseq.Editor.getEditingBlockContent(); // This has more current content (whereas currentBlock.content is stale)
 
-    if (!currentBlock?.content) {
-      logseq.UI.showMsg("Couldn't find a valid Jira issue key.", 'error');
-      throw new Error("Couldn't find a valid Jira issue key.");
+    if ( currentBlock === null) {
+      throw new Error('Select a block before running this command');
     }
-
-    const value = currentBlock.content;
-    const uuid = currentBlock.uuid;
+    
+    const uuid = currentBlock?.uuid;
 
     const issuesList = extractIssues(value);
 
     if (!issuesList || issuesList.length < 1) {
-      logseq.UI.showMsg("Couldn't find any Jira issues in this block.", 'error');
-      return;
+      logseq.UI.showMsg("Couldn't find any Jira issues.", 'error');
+      throw new Error("Couldn't find a valid Jira issue key.");
     }
 
     const issues = await getIssues(issuesList, useSecondOrg);
