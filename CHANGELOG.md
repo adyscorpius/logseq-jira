@@ -1,3 +1,10 @@
+## [0.3.2](https://github.com/adyscorpius/logseq-jira/compare/v0.3.1...v0.3.2) (2024-05-21)
+
+
+### Bug Fixes
+
+* Always get current block content ([e5abaa6](https://github.com/adyscorpius/logseq-jira/commit/e5abaa641d828f36a9d3d703e4abb7de45719666))
+
 ## [0.3.1](https://github.com/adyscorpius/logseq-jira/compare/v0.3.0...v0.3.1) (2024-05-21)
 
 
