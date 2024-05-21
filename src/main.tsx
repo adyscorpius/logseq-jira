@@ -157,7 +157,6 @@ async function getIssues(issuesList: Array<string>, useSecondOrg = false) {
     const jiraURL = `https://${baseURL}/browse/${issueKey}`;
 
     const body = await axios.get(issueRest, {
-      id: 'get-issues',
       headers: {
         'Accept': 'application/json',
         'Authorization': authHeader
