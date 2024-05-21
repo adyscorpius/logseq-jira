@@ -173,4 +173,18 @@ export const settings: SettingSchemaDesc[] = [
         enumChoices: ["3","2"],
         default: "3",
     },
+    {
+        key: "queriesJQL",
+        title: "Append issues from JQL as child blocks",
+        description: "Run custom JQL queries to blocks",
+        type: "heading",
+        default: null
+    },  
+    {
+        key: "jqlQuery",
+        title: "JQL Query",
+        description: "Enter a custom JQL query to run. Defaults to open tickets assigned to me.",
+        type: "string",
+        default: "assignee= currentUser() AND statusCategory != Done and Updated >= -30d",
+    },
 ];
