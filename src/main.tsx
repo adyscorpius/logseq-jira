@@ -7,7 +7,7 @@ import "./index.css";
 import { settings } from './settings';
 import type { Settings } from './models';
 import { logseq as PL } from "../package.json";
-import { extractIssues, regexList, getAuthHeader } from "./utils";
+import { extractIssues as extractIssueKeys, regexes, getAuthHeader } from "./utils";
 
 // Add Axios and support caching.
 import Axios from 'axios';
@@ -108,14 +108,14 @@ async function updateJiraIssue(useSecondOrg: boolean = false): Promise<void> {
     
     const uuid = currentBlock?.uuid;
 
-    const issuesList = extractIssues(value);
+    const issueKeys = extractIssueKeys(value);
 
-    if (!issuesList || issuesList.length < 1) {
+    if (!issueKeys || issueKeys.length < 1) {
       logseq.UI.showMsg("Couldn't find any Jira issues.", 'error');
       throw new Error("Couldn't find a valid Jira issue key.");
     }
 
-    const issues = await getIssues(issuesList, useSecondOrg);
+    const issues = await getIssues(issueKeys, useSecondOrg);
 
     const data = generateTextFromResponse(issues);
 
@@ -125,7 +125,7 @@ async function updateJiraIssue(useSecondOrg: boolean = false): Promise<void> {
     }
 
     if (logseq.settings?.addToBlockProperties) {
-      const properties = genProperties(data[issuesList[0]]);
+      const properties = genProperties(data[issueKeys[0]]);
       newValue = formatTextBlock(newValue, properties);
     }
 
@@ -136,7 +136,7 @@ async function updateJiraIssue(useSecondOrg: boolean = false): Promise<void> {
 }
 
 // Fetch Jira issues
-async function getIssues(issuesList: Array<string>, useSecondOrg = false) {
+async function getIssues(issues: Array<string>, useSecondOrg = false) {
 
   const baseURL = useSecondOrg ? logseq.settings?.jiraBaseURL2 : logseq.settings?.jiraBaseURL;
   const token = useSecondOrg ? logseq.settings?.jiraAPIToken2 : logseq.settings?.jiraAPIToken;
@@ -151,7 +151,7 @@ async function getIssues(issuesList: Array<string>, useSecondOrg = false) {
   const creds: string = btoa(`${user}:${token}`);
   const authHeader = getAuthHeader(useSecondOrg, token, user, creds);
 
-  const requests = issuesList.map(async (issueKey: string) => {
+  const requests = issues.map(async (issueKey: string) => {
     const issueRest = `https://${baseURL}/rest/api/${apiVersion}/issue/${issueKey}`;
     const jiraURL = `https://${baseURL}/browse/${issueKey}`;
 
@@ -231,7 +231,7 @@ function generateTextFromResponse(responses: any[]): Data {
 // Helper to perform regex replacements asynchronously
 async function replaceAsync(str: string, data: Data): Promise<string> {
   let newString = str;
-  for (const regex of regexList) {
+  for (const regex of regexes) {
     newString = newString.replace(regex, (match, ...args) => {
       const { issue } = args.pop();
       return data[issue].text;
