@@ -20,7 +20,7 @@ module.exports = {
       "@semantic-release/exec",
       {
         prepareCmd:
-          "zip -qq -r logseq-jira-${nextRelease.version}.zip dist README.md jira.png LICENSE package.json",
+          "zip -qq -r logseq-jira-${nextRelease.version}.zip CHANGELOG.md dist README.md jira.png LICENSE package.json",
       },
     ],
     [
