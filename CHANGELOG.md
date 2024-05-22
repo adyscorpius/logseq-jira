@@ -1,3 +1,10 @@
+## [0.3.3](https://github.com/adyscorpius/logseq-jira/compare/v0.3.2...v0.3.3) (2024-05-22)
+
+
+### Bug Fixes
+
+* include CHANGELOG.md in zip. ([4f2ab63](https://github.com/adyscorpius/logseq-jira/commit/4f2ab6330af35d32a2acc8a0ebdca256244f762d))
+
 ## [0.3.2](https://github.com/adyscorpius/logseq-jira/compare/v0.3.1...v0.3.2) (2024-05-21)
 
 
