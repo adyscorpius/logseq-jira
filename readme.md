@@ -57,6 +57,9 @@ Configure a second JIRA account if needed:
 
 Once the plugin is configured, you can start pulling JIRA issue data into Logseq. The plugin will automatically update JIRA issue keys with their summaries and display additional JIRA fields as specified in the settings.
 
+- For updating Jira queries, enter the JIRA URL or Issue Key like 'PROJ-123' and the type /Jira, select 'Jira: Update Issue' to use the first organization's credentials, or 'Jira: Update Issue for 2nd Org.' for 2nd organization's credentials.
+- For pulling results from a JQL, type /Jira and select "Jira: Pull JQL results".
+
 ### Example Usage
 
 To insert a JIRA issue into your Logseq notes, simply type the issue key (e.g., `PROJ-123`), then type /Jira and select Update JIRA Issue to fetch and display the issue details based on your configuration.
@@ -80,7 +83,8 @@ If you enable the block properties settings, the plugin will add additional JIRA
 - [x]  Refresh summary on rerun on existing links.
 - [x]  Add more fields to help with context of the tickets
 - [x]  Added support for two Jira instances/organizations.
-- [x]  Experimental support for JIRA On-premise
+- [x]  Experimental: Support for JIRA On-premise
+- [x]  Experimental: Support for JQL queries in children blocks (maxes out at 50 right now)
 - [ ]  Auto refresh/update all links when page is loaded.
 - [ ]  Auto refresh all Jira links across vault (need to verify performance impact on doing this).
 - [ ]  Create your own Link description format with Jira variables ( '{issueKey} - {status} - {summary}' )
