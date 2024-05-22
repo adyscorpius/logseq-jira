@@ -1,7 +1,8 @@
 import "@logseq/libs";
-
 import React from "react";
 import * as ReactDOM from "react-dom/client";
+import Axios from 'axios';
+
 import App from "./App";
 import "./index.css";
 import { settings } from './settings';
@@ -9,15 +10,8 @@ import type { Settings } from './models';
 import { logseq as PL } from "../package.json";
 import { extractIssues as extractIssueKeys, statusCategoryGenerator, regexes, getAuthHeader } from "./utils";
 
-// Add Axios and support caching.
-import Axios from 'axios';
-
+// Add Axios
 const axios = Axios.create();
-
-// @ts-expect-error
-const css = (t, ...args) => String.raw(t, ...args);
-
-const pluginId = PL.id;
 
 type Data = Record<
   string,
@@ -35,6 +29,10 @@ type Data = Record<
   }
 >;
 
+// @ts-expect-error
+const css = (t: TemplateStringsArray, ...args) => String.raw(t, ...args);
+
+const pluginId = PL.id;
 
 async function main() {
   console.info(`#${pluginId}: MAIN`);
@@ -46,67 +44,34 @@ async function main() {
     </React.StrictMode>
   );
 
-  // function createModel() {
-  //   return {
-  //     show() {
-  //       logseq.showMainUI();
-  //     },
-  //   };
-  // }
+  // Setup Logseq settings
+  logseq.useSettingsSchema(settings);
 
-  // logseq.provideModel(createModel());
-  // logseq.setMainUIInlineStyle({
-  //   zIndex: 11,
-  // });
-
-  // const openIconName = "template-plugin-open";
-
-  // logseq.provideStyle(css`
-  //   .${openIconName} {
-  //     opacity: 0.55;
-  //     font-size: 20px;
-  //     margin-top: 4px;
-  //   }
-
-  //   .${openIconName}:hover {
-  //     opacity: 0.9;
-  //   }
-  // `);
-
-  // logseq.App.registerUIItem("toolbar", {
-  //   key: openIconName,
-  //   template: `
-  //     <div data-on-click="show" class="${openIconName}">⚙️</div>
-  //   `,
-  // });
-
-  logseq.Editor.registerSlashCommand('Pull JQL results', async() => {
+  // Register Logseq commands
+  logseq.Editor.registerSlashCommand('Jira: Pull JQL results', async() => {
     await getJQLResults();
   })
 
-  logseq.useSettingsSchema(settings);
-
-  logseq.Editor.registerSlashCommand('Update Jira Issue', async () => {
+  logseq.Editor.registerSlashCommand('Jira: Update Issue', async () => {
     await updateJiraIssue(false);
   });
 
 
   if (logseq.settings?.enableSecond) {
-    logseq.Editor.registerSlashCommand('Update Jira Issue for 2nd Organization', async () => {
+    logseq.Editor.registerSlashCommand('Jira: Update Issue for 2nd Org.', async () => {
       await updateJiraIssue(true);
     });
   }
 }
 
 async function getJQLResults(useSecondOrg: boolean = false) {
-
   const block = await logseq.Editor.getCurrentBlock();
+  const settings = logseq.settings;
 
-  const query = logseq.settings?.jqlQuery ;
-  const baseURL = useSecondOrg ? logseq.settings?.jiraBaseURL2 : logseq.settings?.jiraBaseURL;
-  const token = useSecondOrg ? logseq.settings?.jiraAPIToken2 : logseq.settings?.jiraAPIToken;
-  const user = useSecondOrg ? logseq.settings?.jiraUsername2 : logseq.settings?.jiraUsername;
-  const apiVersion = useSecondOrg ? logseq.settings?.jiraAPIVersion2 : logseq.settings?.jiraAPIVersion || "3";
+  const baseURL = useSecondOrg ? settings?.jiraBaseURL2 : settings?.jiraBaseURL;
+  const token = useSecondOrg ? settings?.jiraAPIToken2 : settings?.jiraAPIToken;
+  const user = useSecondOrg ? settings?.jiraUsername2 : settings?.jiraUsername;
+  const apiVersion = useSecondOrg ? settings?.jiraAPIVersion2 : settings?.jiraAPIVersion || "3";
 
   if (!baseURL || !token || !user) {
     logseq.UI.showMsg('Jira credentials not set. Update in Plugin settings.')
@@ -115,26 +80,27 @@ async function getJQLResults(useSecondOrg: boolean = false) {
 
   const creds: string = btoa(`${user}:${token}`);
   const authHeader = getAuthHeader(useSecondOrg, token, user, creds);
-    const jqlQuery = `https://${baseURL}/rest/api/${apiVersion}/search?jql=${query}`;
-    const body = await axios.get(jqlQuery, {
+  const jqlQuery = `https://${baseURL}/rest/api/${apiVersion}/search?jql=${settings?.jqlQuery}`;
+  
+  const response = await axios.get(jqlQuery, {
       headers: {
         'Accept': 'application/json',
         'Authorization': authHeader
       }
     });
     
-    const response = body.data.issues.map((issue: any) => {
+    const issues = response.data.issues.map((issue: any) => {
       const jiraURL = `https://${baseURL}/browse/${issue.key}`
       return {body: issue, jiraURL }
     })
     
     if (!!block) {
-      
-      const outputBlocks = response.map((row: any) => `${statusCategoryGenerator(row.body.fields.status.statusCategory.colorName)} - ${row.body.fields.status.statusCategory.name} [${row.body.key}|${row.body.fields.summary}](${row.jiraURL})`)
+      const outputBlocks = issues.map((row: any) => 
+        `[${statusCategoryGenerator(row.body.fields.status.statusCategory.colorName)} ${row.body.fields.status.statusCategory.name} - ${row.body.key}|${row.body.fields.summary}](${row.jiraURL})`)
       await logseq.Editor.insertBatchBlock(
         block.uuid, 
-        outputBlocks.map((_uuid: any) => ({
-          content: `${_uuid}`,
+        outputBlocks.map((content: any) => ({
+          content: `${content}`,
         })),
       {
         before: false,
@@ -149,13 +115,11 @@ async function getJQLResults(useSecondOrg: boolean = false) {
 async function updateJiraIssue(useSecondOrg: boolean = false): Promise<void> {
   try {
     const currentBlock = await logseq.Editor.getCurrentBlock();
-    const value = await logseq.Editor.getEditingBlockContent(); // This has more current content (whereas currentBlock.content is stale)
+    const value = await logseq.Editor.getEditingBlockContent();
 
-    if ( currentBlock === null) {
+    if (!currentBlock) {
       throw new Error('Select a block before running this command');
     }
-    
-    const uuid = currentBlock?.uuid;
 
     const issueKeys = extractIssueKeys(value);
 
@@ -165,9 +129,7 @@ async function updateJiraIssue(useSecondOrg: boolean = false): Promise<void> {
     }
 
     const issues = await getIssues(issueKeys, useSecondOrg);
-
     const data = generateTextFromResponse(issues);
-
     let newValue = value;
     if (logseq.settings?.updateInlineText) {
       newValue = await replaceAsync(value, data);
@@ -178,7 +140,7 @@ async function updateJiraIssue(useSecondOrg: boolean = false): Promise<void> {
       newValue = formatTextBlock(newValue, properties);
     }
 
-    await logseq.Editor.updateBlock(uuid, newValue);
+    await logseq.Editor.updateBlock(currentBlock.uuid, newValue);
   } catch (e) {
     //console.error('logseq-jira', e.message);
   }
@@ -186,11 +148,11 @@ async function updateJiraIssue(useSecondOrg: boolean = false): Promise<void> {
 
 // Fetch Jira issues
 async function getIssues(issues: Array<string>, useSecondOrg = false) {
-
-  const baseURL = useSecondOrg ? logseq.settings?.jiraBaseURL2 : logseq.settings?.jiraBaseURL;
-  const token = useSecondOrg ? logseq.settings?.jiraAPIToken2 : logseq.settings?.jiraAPIToken;
-  const user = useSecondOrg ? logseq.settings?.jiraUsername2 : logseq.settings?.jiraUsername;
-  const apiVersion = useSecondOrg ? logseq.settings?.jiraAPIVersion2 : logseq.settings?.jiraAPIVersion || "3";
+  const settings = logseq.settings;
+  const baseURL = useSecondOrg ? settings?.jiraBaseURL2 : settings?.jiraBaseURL;
+  const token = useSecondOrg ? settings?.jiraAPIToken2 : settings?.jiraAPIToken;
+  const user = useSecondOrg ? settings?.jiraUsername2 : settings?.jiraUsername;
+  const apiVersion = useSecondOrg ? settings?.jiraAPIVersion2 : settings?.jiraAPIVersion || "3";
 
   if (!baseURL || !token || !user) {
     logseq.UI.showMsg('Jira credentials not set. Update in Plugin settings.')
@@ -204,74 +166,37 @@ async function getIssues(issues: Array<string>, useSecondOrg = false) {
     const issueRest = `https://${baseURL}/rest/api/${apiVersion}/issue/${issueKey}`;
     const jiraURL = `https://${baseURL}/browse/${issueKey}`;
 
-    const body = await axios.get(issueRest, {
+    const response = await axios.get(issueRest, {
       headers: {
         'Accept': 'application/json',
         'Authorization': authHeader
       }
     });
 
-    return { body, jiraURL }
+    return { body: response.data, jiraURL }
   }
   );
+  const result = await Promise.all(requests);
 
-  const response = await Promise.all(requests);
-
-  return response;
+  return result;
 };
 
 // Generate markdown text from response data
 function generateTextFromResponse(responses: any[]): Data {
   const data: Data = {};
 
-  responses.forEach((response) => {
-    const {
-      jiraURL,
-      body: {  
-        data: {
-          key,
-          fields: {
-            summary,
-            status,
-            issuetype,
-            priority,
-            creator,
-            reporter,
-            fixVersions,
-            assignee,
-            resolution
-
-            /*
-            created,
-            issuelinks,
-            statuscategory,
-            statuscategorychangedate,
-            project: {
-              key,
-              name,
-
-              projectCategory: {
-                description:
-                name:
-              }
-            }
-
-            */
-
-        }}
-      }
-    } = response;
+  responses.forEach(({jiraURL, body: {key, fields }}) => {
     data[key] = {
-      text: `[${key}|${summary}](${jiraURL})`,
-      summary: summary ?? 'None',
-      status: status?.name ?? 'None',
-      type: issuetype?.name ?? 'None',
-      priority: priority?.name ?? 'None',
-      creator: creator?.displayName ?? 'None',
-      reporter: reporter?.displayName ?? 'None',
-      assignee: assignee?.displayName ?? 'None',
-      fixVersion: fixVersions?.[0]?.name ?? 'None',
-      resolution: resolution?.name ?? null,
+      text: `[${statusCategoryGenerator(fields.status.statusCategory.colorName)} ${fields.status.statusCategory.name} - ${key}|${fields.summary}](${jiraURL})`,
+      summary: fields.summary ?? 'None',
+      status: fields.status?.name ?? 'None',
+      type: fields.issuetype?.name ?? 'None',
+      priority: fields.priority?.name ?? 'None',
+      creator: fields.creator?.displayName ?? 'None',
+      reporter: fields.reporter?.displayName ?? 'None',
+      assignee: fields.assignee?.displayName ?? 'None',
+      fixVersion: fields.fixVersions?.[0]?.name ?? 'None',
+      resolution: fields.resolution?.name ?? null,
     };
   });
   return data;
