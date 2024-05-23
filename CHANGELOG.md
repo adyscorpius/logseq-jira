@@ -1,3 +1,10 @@
+# [0.4.0](https://github.com/adyscorpius/logseq-jira/compare/v0.3.3...v0.4.0) (2024-05-23)
+
+
+### Features
+
+* Add Experimental support for auto refresh links. Works only for new links handled through Logseq-Jira. ([9d86ec6](https://github.com/adyscorpius/logseq-jira/commit/9d86ec6c663f442742167a9f3c60b9a4ddd7d41e))
+
 ## [0.3.3](https://github.com/adyscorpius/logseq-jira/compare/v0.3.2...v0.3.3) (2024-05-22)
 
 
