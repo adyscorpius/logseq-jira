@@ -9,6 +9,8 @@ import { settings } from './settings';
 import type { Settings } from './models';
 import { logseq as PL } from "../package.json";
 import { extractIssues as extractIssueKeys, statusCategoryGenerator, regexes, getAuthHeader } from "./utils";
+import { db } from "./db";
+import { BlockEntity } from "@logseq/libs/dist/LSPlugin";
 
 // Add Axios
 const axios = Axios.create();
@@ -35,6 +37,9 @@ const css = (t: TemplateStringsArray, ...args) => String.raw(t, ...args);
 const pluginId = PL.id;
 
 async function main() {
+
+  await db.open();
+
   console.info(`#${pluginId}: MAIN`);
   const root = ReactDOM.createRoot(document.getElementById("app")!);
 
@@ -64,6 +69,18 @@ async function main() {
     });
   }
 
+  logseq.ready().then(async () => {
+    if (logseq.settings?.autoRefresh === "No") return;
+    console.log("Starting DB refresh");
+    
+    db.issues.each(async (val) => {
+        await updateJiraIssue(val.useSecondOrg, val.blockid);
+      })
+  })
+
+  logseq.beforeunload(async () => {
+    db.close();
+  })
 
 }
 
@@ -100,7 +117,8 @@ async function getJQLResults(useSecondOrg: boolean = false) {
     if (!!block) {
       const outputBlocks = issues.map((row: any) => 
         `[${statusCategoryGenerator(row.body.fields.status.statusCategory.colorName)} ${row.body.fields.status.statusCategory.name} - ${row.body.key}|${row.body.fields.summary}](${row.jiraURL})`)
-      await logseq.Editor.insertBatchBlock(
+      
+      const a = await logseq.Editor.insertBatchBlock(
         block.uuid, 
         outputBlocks.map((content: any) => ({
           content: `${content}`,
@@ -115,10 +133,19 @@ async function getJQLResults(useSecondOrg: boolean = false) {
 }
 
 // Main function to update Jira issues
-async function updateJiraIssue(useSecondOrg: boolean = false): Promise<void> {
+async function updateJiraIssue(useSecondOrg: boolean = false, blockUUID?: string): Promise<void> {
   try {
-    const currentBlock = await logseq.Editor.getCurrentBlock();
-    const value = await logseq.Editor.getEditingBlockContent();
+
+    let currentBlock: BlockEntity | null;
+    let value: string;
+    if (blockUUID) {
+      currentBlock = await logseq.Editor.getBlock(blockUUID);
+      value = currentBlock?.content ?? "";
+    } else {
+      currentBlock = await logseq.Editor.getCurrentBlock();
+      value = await logseq.Editor.getEditingBlockContent();
+    }
+    
 
     if (!currentBlock) {
       throw new Error('Select a block before running this command');
@@ -144,6 +171,9 @@ async function updateJiraIssue(useSecondOrg: boolean = false): Promise<void> {
     }
 
     await logseq.Editor.updateBlock(currentBlock.uuid, newValue);
+
+    await db.issues.add({blockid: currentBlock.uuid, name: issueKeys.toString(), useSecondOrg, timestamp: Date.now()});
+    
   } catch (e) {
     //console.error('logseq-jira', e.message);
   }
