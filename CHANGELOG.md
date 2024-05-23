@@ -1,3 +1,10 @@
+## [0.4.1](https://github.com/adyscorpius/logseq-jira/compare/v0.4.0...v0.4.1) (2024-05-23)
+
+
+### Bug Fixes
+
+* Fix bug where PAT setting was not being used by authType. ([87e2616](https://github.com/adyscorpius/logseq-jira/commit/87e2616b3799b14e2c54a9f69551692e52145bec))
+
 # [0.4.0](https://github.com/adyscorpius/logseq-jira/compare/v0.3.3...v0.4.0) (2024-05-23)
 
 
