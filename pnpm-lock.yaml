@@ -14,6 +14,12 @@ importers:
       axios:
         specifier: ^1
         version: 1.7.1
+      dexie:
+        specifier: ^4.0.4
+        version: 4.0.4
+      dexie-react-hooks:
+        specifier: ^1.1.7
+        version: 1.1.7(@types/react@18.3.1)(dexie@4.0.4)(react@18.3.1)
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -982,6 +988,16 @@ packages:
 
   deprecation@2.3.1:
     resolution: {integrity: sha512-xmHIy4F3scKVwMsQ4WnVaS8bHOx0DmVwRywosKhaILI0ywMDWPtBSku2HNxRvF7jtwDRsoEwYQSfbxj8b7RlJQ==}
+
+  dexie-react-hooks@1.1.7:
+    resolution: {integrity: sha512-Lwv5W0Hk+uOW3kGnsU9GZoR1er1B7WQ5DSdonoNG+focTNeJbHW6vi6nBoX534VKI3/uwHebYzSw1fwY6a7mTw==}
+    peerDependencies:
+      '@types/react': '>=16'
+      dexie: ^3.2 || ^4.0.1-alpha
+      react: '>=16'
+
+  dexie@4.0.4:
+    resolution: {integrity: sha512-wFzwWSUdi+MC3jiFeQcCp9nInR7EaX8edzYY+4wmiITkQAiSnHpe4Wo2o5Ce5tJZe2nqt7mLW91MsW4GYx3ziQ==}
 
   didyoumean@1.2.2:
     resolution: {integrity: sha512-gxtyfqMg7GKyhQmb056K7M3xszy/myH8w+B4RT+QXBQsvAOdc3XymqDDPHx1BgPgsdAA5SIifona89YtRATDzw==}
@@ -3874,6 +3890,14 @@ snapshots:
   delayed-stream@1.0.0: {}
 
   deprecation@2.3.1: {}
+
+  dexie-react-hooks@1.1.7(@types/react@18.3.1)(dexie@4.0.4)(react@18.3.1):
+    dependencies:
+      '@types/react': 18.3.1
+      dexie: 4.0.4
+      react: 18.3.1
+
+  dexie@4.0.4: {}
 
   didyoumean@1.2.2: {}
 

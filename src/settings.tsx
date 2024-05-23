@@ -62,6 +62,16 @@ export const settings: SettingSchemaDesc[] = [
         title: "Hyperlink JIRA Issue Keys",
     },
     {
+        key: "autoRefresh",
+        title: "Experimental: Auto refresh on start",
+        description: "Automatically refreshes all links on start of Logseq.",
+        type: "enum",
+        enumPicker: "radio",
+        enumChoices: ["Yes", "No"],
+        default: "No"
+    },  
+
+    {
         key: "addToBlockProperties",
         title: "Add JIRA Fields as Block Properties",
         description: "Include additional JIRA fields as properties in your text blocks.",
@@ -173,6 +183,7 @@ export const settings: SettingSchemaDesc[] = [
         enumChoices: ["3","2"],
         default: "3",
     },
+
     {
         key: "queriesJQL",
         title: "Append issues from JQL as child blocks",
