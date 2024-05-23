@@ -73,9 +73,11 @@ async function main() {
     if (logseq.settings?.autoRefresh === "No") return;
     console.log("Starting DB refresh");
     
-    db.issues.each(async (val) => {
+    await db.issues.each(async (val) => {
         await updateJiraIssue(val.useSecondOrg, val.blockid);
       })
+    const count = await db.issues.count();
+    logseq.UI.showMsg(`Experimental: Refresh ${count} Jira issues...`)
   })
 
   logseq.beforeunload(async () => {
