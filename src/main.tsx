@@ -52,16 +52,19 @@ async function main() {
     await getJQLResults();
   })
 
+  // Register Slash command for Update issue.
   logseq.Editor.registerSlashCommand('Jira: Update Issue', async () => {
     await updateJiraIssue(false);
   });
 
-
+  // Register Slash command for 2nd organization if enabled.
   if (logseq.settings?.enableSecond) {
     logseq.Editor.registerSlashCommand('Jira: Update Issue for 2nd Org.', async () => {
       await updateJiraIssue(true);
     });
   }
+
+
 }
 
 async function getJQLResults(useSecondOrg: boolean = false) {
@@ -205,15 +208,28 @@ function generateTextFromResponse(responses: any[]): Data {
 // Helper to perform regex replacements asynchronously
 async function replaceAsync(str: string, data: Data): Promise<string> {
   let newString = str;
+  const replacedIssues = new Set<string>();
+
   for (const regex of regexes) {
     newString = newString.replace(regex, (match, ...args) => {
-      const { issue } = args.pop();
-      return data[issue].text;
+      const groups = args.pop();
+      const issue = groups.issue;
+
+      if (replacedIssues.has(issue)) {
+        return match;
+      }
+
+      if (data[issue]) {
+        replacedIssues.add(issue);
+        return data[issue].text;
+      }
+
+      return match;
     });
   }
+
   return newString;
 }
-
 // Format block text with properties
 function formatTextBlock(input: string, keyValuePairs: Record<string, string>): string {
   const lines = input.split('\n');
