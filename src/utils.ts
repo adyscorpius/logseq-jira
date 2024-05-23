@@ -32,8 +32,7 @@ export const regexes = [
 export const issueTestRegex: RegExp = /([A-Z][A-Z0-9]+-[0-9]+)/gim;
 
 // Helper function for getAuthType
-export function getAuthHeader(secondOrg: boolean, token: any, user: any, creds: string): string {
-  const authType = secondOrg ? logseq.settings?.getAuthType2 : logseq.settings?.getAuthType;
+export function getAuthHeader(secondOrg: boolean, token: any, user: any, creds: string, authType: string): string {
   let authHeader;
   if (authType === "PAT")  // For PAT https://developer.atlassian.com/server/jira/platform/personal-access-token/#personal-access-token
     authHeader = `Bearer ${token}`;

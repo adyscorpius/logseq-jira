@@ -94,6 +94,7 @@ async function getJQLResults(useSecondOrg: boolean = false) {
   const token = useSecondOrg ? settings?.jiraAPIToken2 : settings?.jiraAPIToken;
   const user = useSecondOrg ? settings?.jiraUsername2 : settings?.jiraUsername;
   const apiVersion = useSecondOrg ? settings?.jiraAPIVersion2 : settings?.jiraAPIVersion || "3";
+  const authType = useSecondOrg ? settings?.jiraAuthType2 : settings?.jiraAuthType;
 
   if (!baseURL || !token || !user) {
     logseq.UI.showMsg('Jira credentials not set. Update in Plugin settings.')
@@ -101,7 +102,8 @@ async function getJQLResults(useSecondOrg: boolean = false) {
   }
 
   const creds: string = btoa(`${user}:${token}`);
-  const authHeader = getAuthHeader(useSecondOrg, token, user, creds);
+  // @ts-ignore
+  const authHeader = getAuthHeader(useSecondOrg, token, user, creds, authType);
   const jqlQuery = `https://${baseURL}/rest/api/${apiVersion}/search?jql=${settings?.jqlQuery}`;
   
   const response = await axios.get(jqlQuery, {
@@ -188,6 +190,7 @@ async function getIssues(issues: Array<string>, useSecondOrg = false) {
   const token = useSecondOrg ? settings?.jiraAPIToken2 : settings?.jiraAPIToken;
   const user = useSecondOrg ? settings?.jiraUsername2 : settings?.jiraUsername;
   const apiVersion = useSecondOrg ? settings?.jiraAPIVersion2 : settings?.jiraAPIVersion || "3";
+  const authType = useSecondOrg ? settings?.jiraAuthType2 : settings?.jiraAuthType || "Basic Auth";
 
   if (!baseURL || !token || !user) {
     logseq.UI.showMsg('Jira credentials not set. Update in Plugin settings.')
@@ -195,7 +198,8 @@ async function getIssues(issues: Array<string>, useSecondOrg = false) {
   }
 
   const creds: string = btoa(`${user}:${token}`);
-  const authHeader = getAuthHeader(useSecondOrg, token, user, creds);
+  // @ts-ignore
+  const authHeader = getAuthHeader(useSecondOrg, token, user, creds, authType);
 
   const requests = issues.map(async (issueKey: string) => {
     const issueRest = `https://${baseURL}/rest/api/${apiVersion}/issue/${issueKey}`;
