@@ -1,7 +1,7 @@
 import "@logseq/libs";
 import React from "react";
 import * as ReactDOM from "react-dom/client";
-import Axios from 'axios';
+import Axios, { AxiosError } from 'axios';
 
 import App from "./App";
 import "./index.css";
@@ -53,7 +53,7 @@ async function main() {
   logseq.useSettingsSchema(settings);
 
   // Register Logseq commands
-  logseq.Editor.registerSlashCommand('Jira: Pull JQL results', async() => {
+  logseq.Editor.registerSlashCommand('Jira: Pull JQL results', async () => {
     await getJQLResults();
   })
 
@@ -72,10 +72,10 @@ async function main() {
   logseq.ready().then(async () => {
     if (logseq.settings?.autoRefresh === "No") return;
     console.log("Starting DB refresh");
-    
+
     await db.issues.each(async (val) => {
-        await updateJiraIssue(val.useSecondOrg, val.blockid);
-      })
+      await updateJiraIssue(val.useSecondOrg, val.blockid);
+    })
     const count = await db.issues.count();
     logseq.UI.showMsg(`Experimental: Refresh ${count} Jira issues...`)
   })
@@ -87,56 +87,56 @@ async function main() {
 }
 
 async function getJQLResults(useSecondOrg: boolean = false) {
-  const block = await logseq.Editor.getCurrentBlock();
-  const settings = logseq.settings;
+  try {
+    const block = await logseq.Editor.getCurrentBlock();
+    const settings = logseq.settings;
 
-  const baseURL = useSecondOrg ? settings?.jiraBaseURL2 : settings?.jiraBaseURL;
-  const token = useSecondOrg ? settings?.jiraAPIToken2 : settings?.jiraAPIToken;
-  const user = useSecondOrg ? settings?.jiraUsername2 : settings?.jiraUsername;
-  const apiVersion = useSecondOrg ? settings?.jiraAPIVersion2 : settings?.jiraAPIVersion || "3";
-  const authType = useSecondOrg ? settings?.jiraAuthType2 : settings?.jiraAuthType;
-  const enableOrgMode = settings?.enableOrgMode as boolean;
+    const baseURL = useSecondOrg ? settings?.jiraBaseURL2 : settings?.jiraBaseURL;
+    const token = useSecondOrg ? settings?.jiraAPIToken2 : settings?.jiraAPIToken;
+    const user = useSecondOrg ? settings?.jiraUsername2 : settings?.jiraUsername;
+    const apiVersion = useSecondOrg ? settings?.jiraAPIVersion2 : settings?.jiraAPIVersion || "3";
+    const authType = (useSecondOrg ? settings?.jiraAuthType2 : settings?.jiraAuthType) as string;
+    const enableOrgMode = settings?.enableOrgMode as boolean;
 
-  if (!baseURL || !token || !user) {
-    logseq.UI.showMsg('Jira credentials not set. Update in Plugin settings.')
-    throw new Error('Jira base URL not set.');
-  }
+    if (!baseURL || !token || !user) {
+      logseq.UI.showMsg('Jira credentials not set. Update in Plugin settings.')
+      throw new Error('Jira base URL not set.');
+    }
 
-  const creds: string = btoa(`${user}:${token}`);
-  // @ts-ignore
-  const authHeader = getAuthHeader(useSecondOrg, token, user, creds, authType);
-  const jqlQuery = `https://${baseURL}/rest/api/${apiVersion}/search?jql=${settings?.jqlQuery}`;
-  
-  const response = await axios.get(jqlQuery, {
+    const creds: string = btoa(`${user}:${token}`);
+    const authHeader = getAuthHeader(useSecondOrg, token, user, creds, authType);
+    const jqlQuery = `https://${baseURL}/rest/api/${apiVersion}/search?jql=${settings?.jqlQuery}`;
+
+    const response = await axios.get(jqlQuery, {
       headers: {
         'Accept': 'application/json',
         'Authorization': authHeader
       }
     });
-    
+
     const issues = response.data.issues.map((issue: any) => {
       const jiraURL = `https://${baseURL}/browse/${issue.key}`
-      return {body: issue, jiraURL }
+      return { body: issue, jiraURL }
     })
 
-
-    
     if (!!block) {
-      const outputBlocks = issues.map((row: any) => 
+      const outputBlocks = issues.map((row: any) =>
         enableOrgMode ? `[[${row.jiraURL}][${statusCategoryGenerator(row.body.fields.status.statusCategory.colorName)} ${row.body.fields.status.statusCategory.name} - ${row.body.key}|${row.body.fields.summary}]]` :
-        `[${statusCategoryGenerator(row.body.fields.status.statusCategory.colorName)} ${row.body.fields.status.statusCategory.name} - ${row.body.key}|${row.body.fields.summary}](${row.jiraURL})`);
-      
+          `[${statusCategoryGenerator(row.body.fields.status.statusCategory.colorName)} ${row.body.fields.status.statusCategory.name} - ${row.body.key}|${row.body.fields.summary}](${row.jiraURL})`);
+
       const a = await logseq.Editor.insertBatchBlock(
-        block.uuid, 
+        block.uuid,
         outputBlocks.map((content: any) => ({
           content: `${content}`,
         })),
-      {
-        before: false,
-        sibling: false
-      });
+        {
+          before: false,
+          sibling: false
+        });
     }
-    
+  } catch (e: any) {
+    logseq.UI.showMsg(`Failed to fetch JQL results: ${e.message}`, 'error');
+  }
 
 }
 
@@ -153,7 +153,7 @@ async function updateJiraIssue(useSecondOrg: boolean = false, blockUUID?: string
       currentBlock = await logseq.Editor.getCurrentBlock();
       value = await logseq.Editor.getEditingBlockContent();
     }
-    
+
 
     if (!currentBlock) {
       throw new Error('Select a block before running this command');
@@ -167,6 +167,7 @@ async function updateJiraIssue(useSecondOrg: boolean = false, blockUUID?: string
     }
 
     const issues = await getIssues(issueKeys, useSecondOrg);
+    if (issues === undefined) return;
     const enableOrgMode = logseq.settings?.enableOrgMode as boolean ?? false;
     const data = generateTextFromResponse(issues, enableOrgMode);
     let newValue = value;
@@ -181,8 +182,8 @@ async function updateJiraIssue(useSecondOrg: boolean = false, blockUUID?: string
 
     await logseq.Editor.updateBlock(currentBlock.uuid, newValue);
 
-    await db.issues.add({blockid: currentBlock.uuid, name: issueKeys.toString(), useSecondOrg, timestamp: Date.now()});
-    
+    await db.issues.add({ blockid: currentBlock.uuid, name: issueKeys.toString(), useSecondOrg, timestamp: Date.now() });
+
   } catch (e) {
     //console.error('logseq-jira', e.message);
   }
@@ -190,48 +191,57 @@ async function updateJiraIssue(useSecondOrg: boolean = false, blockUUID?: string
 
 // Fetch Jira issues
 async function getIssues(issues: Array<string>, useSecondOrg = false) {
-  const settings = logseq.settings;
-  const baseURL = useSecondOrg ? settings?.jiraBaseURL2 : settings?.jiraBaseURL;
-  const token = useSecondOrg ? settings?.jiraAPIToken2 : settings?.jiraAPIToken;
-  const user = useSecondOrg ? settings?.jiraUsername2 : settings?.jiraUsername;
-  const apiVersion = useSecondOrg ? settings?.jiraAPIVersion2 : settings?.jiraAPIVersion || "3";
-  const authType = useSecondOrg ? settings?.jiraAuthType2 : settings?.jiraAuthType || "Basic Auth";
+  try {
+    const settings = logseq.settings;
+    const baseURL = useSecondOrg ? settings?.jiraBaseURL2 : settings?.jiraBaseURL;
+    const token = useSecondOrg ? settings?.jiraAPIToken2 : settings?.jiraAPIToken;
+    const user = useSecondOrg ? settings?.jiraUsername2 : settings?.jiraUsername;
+    const apiVersion = useSecondOrg ? settings?.jiraAPIVersion2 : settings?.jiraAPIVersion || "3";
+    const authType = (useSecondOrg ? settings?.jiraAuthType2 : settings?.jiraAuthType) as string;
 
-  if (!baseURL || !token || !user) {
-    logseq.UI.showMsg('Jira credentials not set. Update in Plugin settings.')
-    throw new Error('Jira base URL not set.');
-  }
+    if (!baseURL || !token || !user) {
+      logseq.UI.showMsg('Jira credentials not set. Update in Plugin settings.')
+      throw new Error('Jira base URL not set.');
+    }
 
-  const creds: string = btoa(`${user}:${token}`);
-  // @ts-ignore
-  const authHeader = getAuthHeader(useSecondOrg, token, user, creds, authType);
+    const creds: string = btoa(`${user}:${token}`);
+    const authHeader = getAuthHeader(useSecondOrg, token, user, creds, authType as string);
 
-  const requests = issues.map(async (issueKey: string) => {
-    const issueRest = `https://${baseURL}/rest/api/${apiVersion}/issue/${issueKey}`;
-    const jiraURL = `https://${baseURL}/browse/${issueKey}`;
+    const requests = issues.map(async (issueKey: string) => {
+      const issueRest = `https://${baseURL}/rest/api/${apiVersion}/issue/${issueKey}`;
+      const jiraURL = `https://${baseURL}/browse/${issueKey}`;
 
-    const response = await axios.get(issueRest, {
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': authHeader
+      try {
+        const response = await axios.get(issueRest, {
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': authHeader
+          }
+        });
+
+        return { body: response.data, jiraURL }
+      } catch (e: any) {
+        logseq.UI.showMsg(`Failed to fetch ${issueKey}: ${e.message}`, 'error');
+        return null;
       }
-    });
+    }
+    );
+    const result = await Promise.all(requests);
 
-    return { body: response.data, jiraURL }
+    return result.filter((i) => i !== null) // Filter out erroneous responses.
+
+  } catch (e: any) {
+    logseq.UI.showMsg(`Failed to fetch issues: ${e.message}`, 'error');
   }
-  );
-  const result = await Promise.all(requests);
-
-  return result;
 };
 
 // Generate markdown text from response data
 function generateTextFromResponse(responses: any[], enableOrdMode: boolean): Data {
   const data: Data = {};
 
-  responses.forEach(({jiraURL, body: {key, fields }}) => {
+  responses.forEach(({ jiraURL, body: { key, fields } }) => {
     const text = enableOrdMode ? `[[${jiraURL}][${statusCategoryGenerator(fields.status.statusCategory.colorName)} ${fields.status.statusCategory.name} - ${key}|${fields.summary}]]` :
-    `[${statusCategoryGenerator(fields.status.statusCategory.colorName)} ${fields.status.statusCategory.name} - ${key}|${fields.summary}](${jiraURL})`
+      `[${statusCategoryGenerator(fields.status.statusCategory.colorName)} ${fields.status.statusCategory.name} - ${key}|${fields.summary}](${jiraURL})`
     data[key] = {
       text: text,
       summary: fields.summary ?? 'None',
