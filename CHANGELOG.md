@@ -1,3 +1,10 @@
+# [0.5.0](https://github.com/adyscorpius/logseq-jira/compare/v0.4.1...v0.5.0) (2024-05-24)
+
+
+### Features
+
+* Add support for org-mode text format. ([b338a0b](https://github.com/adyscorpius/logseq-jira/commit/b338a0bab0c762ca4a806651fff1b4a48b6e1be4))
+
 ## [0.4.1](https://github.com/adyscorpius/logseq-jira/compare/v0.4.0...v0.4.1) (2024-05-23)
 
 
