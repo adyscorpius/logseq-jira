@@ -32,6 +32,7 @@ Customize how JIRA issue details are shown in your notes:
 |-------------------------|--------------------------|-----------------------------------------------------------------------------------------------------|---------|----------------------------|
 | updateInlineText        | Hyperlink JIRA Issue Keys | Automatically hyperlink JIRA issue keys with their summaries.                                       | Boolean | true                       |
 | autoRefresh             | Auto Refresh Jira Links | Experimental: Automatically refresh all links at start of Logseq.                                       | Enum | No                       |
+| enableOrgMode            | Support for Org-Mode vaults | If you use org mode for your content, enable this flag. Turned off by default | Boolean | false                      |
 | addToBlockProperties    | Add JIRA Fields as Block Properties | Include additional JIRA fields as properties in your text blocks.                                    | Boolean | false                      |
 | showSummary             | Show Summary             | Display the issue summary.                                                                          | Boolean | false                      |
 | showAssignee            | Show Assignee            | Display the issue assignee.                                                                         | Boolean | false                      |
@@ -87,6 +88,7 @@ If you enable the block properties settings, the plugin will add additional JIRA
 - [x]  Experimental: Support for JIRA On-premise
 - [x]  Experimental: Support for JQL queries in children blocks (maxes out at 50 right now)
 - [x]  Experimental: Auto refresh/update all links when page is loaded. 
+- [x]  Support for Org Mode vaults. 
 - [ ]  Auto refresh all Jira links across vault (need to verify performance impact on doing this).
 - [ ]  Create your own Link description format with Jira variables ( '{issueKey} - {status} - {summary}' )
 

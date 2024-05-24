@@ -8,7 +8,7 @@ import "./index.css";
 import { settings } from './settings';
 import type { Settings } from './models';
 import { logseq as PL } from "../package.json";
-import { extractIssues as extractIssueKeys, statusCategoryGenerator, regexes, getAuthHeader } from "./utils";
+import { extractIssues as extractIssueKeys, statusCategoryGenerator, getAuthHeader, orgModeRegexes, markdownRegexes } from "./utils";
 import { db } from "./db";
 import { BlockEntity } from "@logseq/libs/dist/LSPlugin";
 
@@ -95,6 +95,7 @@ async function getJQLResults(useSecondOrg: boolean = false) {
   const user = useSecondOrg ? settings?.jiraUsername2 : settings?.jiraUsername;
   const apiVersion = useSecondOrg ? settings?.jiraAPIVersion2 : settings?.jiraAPIVersion || "3";
   const authType = useSecondOrg ? settings?.jiraAuthType2 : settings?.jiraAuthType;
+  const enableOrgMode = settings?.enableOrgMode as boolean;
 
   if (!baseURL || !token || !user) {
     logseq.UI.showMsg('Jira credentials not set. Update in Plugin settings.')
@@ -117,10 +118,13 @@ async function getJQLResults(useSecondOrg: boolean = false) {
       const jiraURL = `https://${baseURL}/browse/${issue.key}`
       return {body: issue, jiraURL }
     })
+
+
     
     if (!!block) {
       const outputBlocks = issues.map((row: any) => 
-        `[${statusCategoryGenerator(row.body.fields.status.statusCategory.colorName)} ${row.body.fields.status.statusCategory.name} - ${row.body.key}|${row.body.fields.summary}](${row.jiraURL})`)
+        enableOrgMode ? `[[${row.jiraURL}][${statusCategoryGenerator(row.body.fields.status.statusCategory.colorName)} ${row.body.fields.status.statusCategory.name} - ${row.body.key}|${row.body.fields.summary}]]` :
+        `[${statusCategoryGenerator(row.body.fields.status.statusCategory.colorName)} ${row.body.fields.status.statusCategory.name} - ${row.body.key}|${row.body.fields.summary}](${row.jiraURL})`);
       
       const a = await logseq.Editor.insertBatchBlock(
         block.uuid, 
@@ -163,10 +167,11 @@ async function updateJiraIssue(useSecondOrg: boolean = false, blockUUID?: string
     }
 
     const issues = await getIssues(issueKeys, useSecondOrg);
-    const data = generateTextFromResponse(issues);
+    const enableOrgMode = logseq.settings?.enableOrgMode as boolean ?? false;
+    const data = generateTextFromResponse(issues, enableOrgMode);
     let newValue = value;
     if (logseq.settings?.updateInlineText) {
-      newValue = await replaceAsync(value, data);
+      newValue = await replaceAsync(value, data, enableOrgMode);
     }
 
     if (logseq.settings?.addToBlockProperties) {
@@ -221,12 +226,14 @@ async function getIssues(issues: Array<string>, useSecondOrg = false) {
 };
 
 // Generate markdown text from response data
-function generateTextFromResponse(responses: any[]): Data {
+function generateTextFromResponse(responses: any[], enableOrdMode: boolean): Data {
   const data: Data = {};
 
   responses.forEach(({jiraURL, body: {key, fields }}) => {
+    const text = enableOrdMode ? `[[${jiraURL}][${statusCategoryGenerator(fields.status.statusCategory.colorName)} ${fields.status.statusCategory.name} - ${key}|${fields.summary}]]` :
+    `[${statusCategoryGenerator(fields.status.statusCategory.colorName)} ${fields.status.statusCategory.name} - ${key}|${fields.summary}](${jiraURL})`
     data[key] = {
-      text: `[${statusCategoryGenerator(fields.status.statusCategory.colorName)} ${fields.status.statusCategory.name} - ${key}|${fields.summary}](${jiraURL})`,
+      text: text,
       summary: fields.summary ?? 'None',
       status: fields.status?.name ?? 'None',
       type: fields.issuetype?.name ?? 'None',
@@ -242,9 +249,10 @@ function generateTextFromResponse(responses: any[]): Data {
 }
 
 // Helper to perform regex replacements asynchronously
-async function replaceAsync(str: string, data: Data): Promise<string> {
+async function replaceAsync(str: string, data: Data, enableOrgMode: boolean): Promise<string> {
   let newString = str;
   const replacedIssues = new Set<string>();
+  const regexes = enableOrgMode ? orgModeRegexes : markdownRegexes;
 
   for (const regex of regexes) {
     newString = newString.replace(regex, (match, ...args) => {
