@@ -70,7 +70,13 @@ export const settings: SettingSchemaDesc[] = [
         enumChoices: ["Yes", "No"],
         default: "No"
     },  
-
+    {
+        key: "enableOrgMode",
+        title: "Support Org Mode",
+        description: "Enable this flag if you use Org Mode instead of Markdown",
+        type: "boolean",
+        default: false
+    },  
     {
         key: "addToBlockProperties",
         title: "Add JIRA Fields as Block Properties",
