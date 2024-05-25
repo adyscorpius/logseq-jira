@@ -1,3 +1,10 @@
+# [0.6.0](https://github.com/adyscorpius/logseq-jira/compare/v0.5.0...v0.6.0) (2024-05-25)
+
+
+### Features
+
+* Add title to JQL query. ([a7304ee](https://github.com/adyscorpius/logseq-jira/commit/a7304ee4995cb5e8589aa89903c0717470857a75))
+
 # [0.5.0](https://github.com/adyscorpius/logseq-jira/compare/v0.4.1...v0.5.0) (2024-05-24)
 
 
