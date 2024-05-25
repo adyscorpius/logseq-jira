@@ -190,17 +190,27 @@ export const settings: SettingSchemaDesc[] = [
         default: "3",
     },
 
+
+
+
     {
         key: "queriesJQL",
         title: "Append issues from JQL as child blocks",
         description: "Run custom JQL queries to blocks",
         type: "heading",
         default: null
-    },  
+    },
+    {
+        key: "jqlQueryTitle",
+        title: "Query Title",
+        description: "Title for JQL query. Leave empty to disable. The tickets will be appended as children to this block.",
+        type: "string",
+        default: "",
+    },
     {
         key: "jqlQuery",
         title: "JQL Query",
-        description: "Enter a custom JQL query to run. Defaults to open tickets assigned to me.",
+        description: "Enter a custom JQL query to run. Defaults to open tickets assigned to me. Maximum 50 issues.",
         type: "string",
         default: "assignee= currentUser() AND statusCategory != Done and Updated >= -30d",
     },

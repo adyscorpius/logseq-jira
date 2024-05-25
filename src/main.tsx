@@ -97,6 +97,7 @@ async function getJQLResults(useSecondOrg: boolean = false) {
     const apiVersion = useSecondOrg ? settings?.jiraAPIVersion2 : settings?.jiraAPIVersion || "3";
     const authType = (useSecondOrg ? settings?.jiraAuthType2 : settings?.jiraAuthType) as string;
     const enableOrgMode = settings?.enableOrgMode as boolean;
+    const jqlTitle = settings?.jqlQueryTitle as string;
 
     if (!baseURL || !token || !user) {
       logseq.UI.showMsg('Jira credentials not set. Update in Plugin settings.')
@@ -124,7 +125,9 @@ async function getJQLResults(useSecondOrg: boolean = false) {
         enableOrgMode ? `[[${row.jiraURL}][${statusCategoryGenerator(row.body.fields.status.statusCategory.colorName)} ${row.body.fields.status.statusCategory.name} - ${row.body.key}|${row.body.fields.summary}]]` :
           `[${statusCategoryGenerator(row.body.fields.status.statusCategory.colorName)} ${row.body.fields.status.statusCategory.name} - ${row.body.key}|${row.body.fields.summary}](${row.jiraURL})`);
 
-      const a = await logseq.Editor.insertBatchBlock(
+      if (jqlTitle) await logseq.Editor.updateBlock(block.uuid, jqlTitle);
+      
+      await logseq.Editor.insertBatchBlock(
         block.uuid,
         outputBlocks.map((content: any) => ({
           content: `${content}`,
