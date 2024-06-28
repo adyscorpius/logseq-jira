@@ -1,3 +1,10 @@
+## [0.6.1](https://github.com/adyscorpius/logseq-jira/compare/v0.6.0...v0.6.1) (2024-06-28)
+
+
+### Bug Fixes
+
+*  Make description lookup more robust and handle nested brackets in regex. ([8cef166](https://github.com/adyscorpius/logseq-jira/commit/8cef166d6a1a9fdde70e22bf58f40c21ad61594d))
+
 # [0.6.0](https://github.com/adyscorpius/logseq-jira/compare/v0.5.0...v0.6.0) (2024-05-25)
 
 
