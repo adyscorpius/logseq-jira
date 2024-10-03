@@ -90,7 +90,6 @@ async function getJQLResults(useSecondOrg: boolean = false) {
   try {
     const block = await logseq.Editor.getCurrentBlock();
     const settings = logseq.settings;
-
     const baseURL = useSecondOrg ? settings?.jiraBaseURL2 : settings?.jiraBaseURL;
     const token = useSecondOrg ? settings?.jiraAPIToken2 : settings?.jiraAPIToken;
     const user = useSecondOrg ? settings?.jiraUsername2 : settings?.jiraUsername;
@@ -106,7 +105,7 @@ async function getJQLResults(useSecondOrg: boolean = false) {
 
     const creds: string = btoa(`${user}:${token}`);
     const authHeader = getAuthHeader(useSecondOrg, token, user, creds, authType);
-    const jqlQuery = `https://${baseURL}/rest/api/${apiVersion}/search?jql=${settings?.jqlQuery}`;
+    const jqlQuery = `https://${baseURL}/rest/api/${apiVersion}/search?jql=${block?.content}`;
 
     const response = await axios.get(jqlQuery, {
       headers: {

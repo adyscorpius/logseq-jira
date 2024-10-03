@@ -206,12 +206,5 @@ export const settings: SettingSchemaDesc[] = [
         description: "Title for JQL query. Leave empty to disable. The tickets will be appended as children to this block.",
         type: "string",
         default: "",
-    },
-    {
-        key: "jqlQuery",
-        title: "JQL Query",
-        description: "Enter a custom JQL query to run. Defaults to open tickets assigned to me. Maximum 50 issues.",
-        type: "string",
-        default: "assignee= currentUser() AND statusCategory != Done and Updated >= -30d",
-    },
+    }
 ];
