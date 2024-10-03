@@ -10,7 +10,8 @@ import type { Settings } from './models';
 import { logseq as PL } from "../package.json";
 import { extractIssues as extractIssueKeys, statusCategoryGenerator, getAuthHeader, orgModeRegexes, markdownRegexes } from "./utils";
 import { db } from "./db";
-import { BlockEntity } from "@logseq/libs/dist/LSPlugin";
+import { BlockEntity, BlockUUIDTuple } from "@logseq/libs/dist/LSPlugin";
+import { BlockList } from "net";
 
 // Add Axios
 const axios = Axios.create();
@@ -54,9 +55,10 @@ async function main() {
 
   // Register Logseq commands
   logseq.Editor.registerSlashCommand('Jira: Pull JQL results', async () => {
-    await getJQLResults();
+    await getAndUpdateJQLResults();
   })
 
+  logseq.Editor.registerSlashCommand('Clear sub-blocks', async () => {await clearSubBlocks(); });
   // Register Slash command for Update issue.
   logseq.Editor.registerSlashCommand('Jira: Update Issue', async () => {
     await updateJiraIssue(false);
@@ -84,6 +86,27 @@ async function main() {
     db.close();
   })
 
+}
+
+function isBlockEntity(x: any): x is BlockEntity {
+  return (  typeof x === "object" &&  x !== null );
+}
+
+function isBlockUUIDTuple(x: any): x is BlockUUIDTuple {
+  return (  typeof x === "object" &&  x !== null );
+}
+
+async function clearSubBlocks(){
+  const block = await logseq.Editor.getCurrentBlock();
+  block?.children?.forEach(x=>{
+    if(isBlockEntity(x)) logseq.Editor.removeBlock(x.uuid);
+    if(isBlockUUIDTuple(x)) logseq.Editor.removeBlock(x[1]);
+  });
+}
+
+async function getAndUpdateJQLResults(useSecondOrg: boolean = false) {
+  await clearSubBlocks();
+  await getJQLResults(useSecondOrg);
 }
 
 async function getJQLResults(useSecondOrg: boolean = false) {
