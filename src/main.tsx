@@ -125,10 +125,11 @@ async function getJQLResults(useSecondOrg: boolean = false) {
       logseq.UI.showMsg('Jira credentials not set. Update in Plugin settings.')
       throw new Error('Jira base URL not set.');
     }
-
+    var jql = "";
+    if(block?.properties!==undefined && 'jira' in block.properties) jql = block.properties['jira'];
     const creds: string = btoa(`${user}:${token}`);
     const authHeader = getAuthHeader(useSecondOrg, token, user, creds, authType);
-    const jqlQuery = `https://${baseURL}/rest/api/${apiVersion}/search?jql=${block?.content}`;
+    const jqlQuery = `https://${baseURL}/rest/api/${apiVersion}/search?jql=${jql}`;
 
     const response = await axios.get(jqlQuery, {
       headers: {
