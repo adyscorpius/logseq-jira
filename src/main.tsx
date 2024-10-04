@@ -126,9 +126,15 @@ async function getJQLResults(useSecondOrg: boolean = false) {
       throw new Error('Jira base URL not set.');
     }
     var jql = "";
-    if(block?.properties!==undefined && 'jira' in block.properties) jql = block.properties['jira'];
+    if(block?.properties!==undefined){
+      if('jira' in block.properties) jql = block.properties['jira'];
+      else jql += (jql.length?" ":"")+Object.entries(block.properties).filter(x=>x[0]!='heading').map(x=>`${x[0]} = ${x[1]}`).join(" AND ");
+    }
     const creds: string = btoa(`${user}:${token}`);
     const authHeader = getAuthHeader(useSecondOrg, token, user, creds, authType);
+    if(settings?.jqlQuery) jql += (jql.length?" AND ":"")+settings.jqlQuery;
+    jql += " " + settings?.jqlQuerySuffix;
+    console.log(jql);
     const jqlQuery = `https://${baseURL}/rest/api/${apiVersion}/search?jql=${jql}`;
 
     const response = await axios.get(jqlQuery, {

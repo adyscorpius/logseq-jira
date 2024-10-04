@@ -206,5 +206,19 @@ export const settings: SettingSchemaDesc[] = [
         description: "Title for JQL query. Leave empty to disable. The tickets will be appended as children to this block.",
         type: "string",
         default: "",
+    },
+    {
+        key: "jqlQuery",
+        title: "JQL Query Condition",
+        description: "This jql condition will be added to all your jql queries. and AND delimitter will automaticall be added in case you add more conditions via block properties",
+        type: "string",
+        default: "assignee = currentUser() AND resolution = Unresolved",
+    },
+    {
+        key: "jqlQuerySuffix",
+        title: "JQL Query Suffix",
+        description: "This query suffix will be appened to all the jql queries you execute",
+        type: "string",
+        default: "order by priority DESC",
     }
 ];
