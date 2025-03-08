@@ -106,9 +106,12 @@ async function getJQLResults(useSecondOrg: boolean = false) {
 
     const creds: string = btoa(`${user}:${token}`);
     const authHeader = getAuthHeader(useSecondOrg, token, user, creds, authType);
-    const jqlQuery = `https://${baseURL}/rest/api/${apiVersion}/search?jql=${settings?.jqlQuery}`;
 
-    const response = await axios.get(jqlQuery, {
+    // jql-query property if it exists at block level will override plugin settings.
+    const jqlQuery: string = block?.properties?.jiraJql ?? settings?.jqlQuery ?? '';
+    const jqlQueryURL = `https://${baseURL}/rest/api/${apiVersion}/search?jql=${encodeURIComponent(jqlQuery)}`;
+
+    const response = await axios.get(jqlQueryURL, {
       headers: {
         'Accept': 'application/json',
         'Authorization': authHeader
