@@ -1,7 +1,7 @@
 import { LSPluginUserEvents } from "@logseq/libs/dist/LSPlugin.user";
 import React from "react";
-import { Issue, JiraConnectionSettings } from "../jiraTypes";
-import { JiraPluginSettings } from "../settings";
+import { Issue, IssuesWithDomain, JiraConnectionSettings } from "../jiraTypes";
+import { JiraPluginSettings } from "../models";
 
 let _visible = logseq.isMainUIVisible;
 
@@ -84,8 +84,16 @@ export function getJiraConnectionSettings(settings: JiraPluginSettings, useSecon
   }
 }
 
+export function formatIssue({ jiraURL, body: issue }: IssuesWithDomain, settings: JiraPluginSettings): string {
+  if (settings.enableOrgMode) {
+    return `[[${jiraURL}][${formatIssueInternal(settings.issueLinkTextFormatOrgMode, issue)}]]`;
+  }
+
+  return `[${formatIssueInternal(settings.issueLinkTextFormat, issue)}](${jiraURL})`;
+}
+
 const argumentBoundryChar = '%';
-export function formatIssue(format: string, issue: Issue): string {
+function formatIssueInternal(format: string, issue: Issue): string {
   const statusCategoryIcon = statusCategoryGenerator(issue.fields.status.statusCategory.colorName);
   const statusCategoryName = issue.fields.status.statusCategory.name;
 

@@ -5,8 +5,8 @@ import Axios, { AxiosError } from 'axios';
 
 import App from "./App";
 import "./index.css";
-import { JiraPluginSettings, settings } from './settings';
-import type { Settings } from './models';
+import { settings } from './settings';
+import type { JiraPluginSettings } from './models';
 import { logseq as PL } from "../package.json";
 import { extractIssues as extractIssueKeys, statusCategoryGenerator, orgModeRegexes, markdownRegexes, getJiraConnectionSettings, formatIssue } from "./utils/utils";
 import { db } from "./db";
@@ -30,6 +30,7 @@ type Data = Record<
     assignee: string;
     fixVersion: string;
     resolution: string;
+    customTags: string;
   }
 >;
 
@@ -69,23 +70,22 @@ async function main() {
     debugger;
   });
 
+  const jiraSettings = logseq.settings as JiraPluginSettings;
+
   // Register Slash command for 2nd organization if enabled.
-  if (logseq.settings?.enableSecond) {
+  if (jiraSettings.enableSecond) {
     logseq.Editor.registerSlashCommand('Jira: Update Issue for 2nd Org.', async () => {
       await updateJiraIssue(true);
     });
   }
 
-  let mainContentContainer = parent.document.getElementById(
+  const mainContentContainer = parent.document.getElementById(
     "main-content-container",
   );
 
-  mainContentContainer?.addEventListener("paste", pasteHandler);
-  console.debug(mainContentContainer);
-
-  logseq.beforeunload(async () => {
-    mainContentContainer?.removeEventListener("paste", pasteHandler);
-  })
+  if (jiraSettings.updateOnPaste === "Yes") {
+    mainContentContainer?.addEventListener("paste", pasteHandler);
+  }
 
   logseq.ready().then(async () => {
     if (logseq.settings?.autoRefresh === "No") return;
@@ -100,13 +100,24 @@ async function main() {
 
   logseq.beforeunload(async () => {
     db.close();
+
+    if (jiraSettings.updateOnPaste === "Yes") {
+      mainContentContainer?.removeEventListener("paste", pasteHandler);
+    }
   })
 
 }
 
 async function pasteHandler(e: ClipboardEvent) {
-  const pasteTypes = e.clipboardData?.types
-  console.debug(pasteTypes);
+  const text = e.clipboardData?.getData("text");
+  if (text)
+  {
+    const issueKeys = extractIssueKeys(text);
+    if (issueKeys && issueKeys.length > 0)
+    {
+      await updateJiraIssueOnPaste(text, false);
+    }
+  }
 }
 
 async function getJQLResults(useSecondOrg: boolean = false) {
@@ -196,18 +207,62 @@ async function updateJiraIssue(useSecondOrg: boolean, blockUUID?: string): Promi
     }
 
     const issues = await getIssues(issueKeys, useSecondOrg);
-    if (issues === undefined) {
+    if (issues === undefined || issues.length === 0) {
       return;
     }
 
-    const enableOrgMode = logseq.settings?.enableOrgMode as boolean ?? false;
+    const settings = logseq.settings as JiraPluginSettings;
+    const enableOrgMode = settings.enableOrgMode;
     const data = generateTextFromResponse(issues, enableOrgMode);
     let newValue = value;
-    if (logseq.settings?.updateInlineText) {
+    if (settings.updateInlineText) {
       newValue = await replaceAsync(value, data, enableOrgMode);
     }
 
-    if (logseq.settings?.addToBlockProperties) {
+    if (settings.addToBlockProperties) {
+      const properties = genProperties(data[issueKeys[0]]);
+      newValue = formatTextBlock(newValue, properties);
+    }
+
+    await logseq.Editor.updateBlock(currentBlock.uuid, newValue);
+
+    await db.issues.add({ blockid: currentBlock.uuid, name: issueKeys.toString(), useSecondOrg, timestamp: Date.now() });
+
+  } catch (e: any) {
+    console.error('logseq-jira', e.message);
+  }
+}
+
+async function updateJiraIssueOnPaste(value: string, useSecondOrg: boolean): Promise<void> {
+  try {
+
+    const currentBlock = await logseq.Editor.getCurrentBlock();
+
+    if (!currentBlock) {
+      throw new Error('Select a block before running this command');
+    }
+
+    const issueKeys = extractIssueKeys(value);
+
+    if (!issueKeys || issueKeys.length < 1) {
+      logseq.UI.showMsg("Couldn't find any Jira issues.", 'error');
+      throw new Error("Couldn't find a valid Jira issue key.");
+    }
+
+    const issues = await getIssues(issueKeys, useSecondOrg);
+    if (issues === undefined || issues.length === 0) {
+      return;
+    }
+
+    const settings = logseq.settings as JiraPluginSettings;
+    const enableOrgMode = settings.enableOrgMode;
+    const data = generateTextFromResponse(issues, enableOrgMode);
+    let newValue = value;
+    if (settings.updateInlineText) {
+      newValue = await replaceAsync(value, data, enableOrgMode);
+    }
+
+    if (settings.addToBlockProperties) {
       const properties = genProperties(data[issueKeys[0]]);
       newValue = formatTextBlock(newValue, properties);
     }
@@ -256,22 +311,9 @@ function generateTextFromResponse(responses: IssuesWithDomain[], enableOrgMode: 
   const data: Data = {};
   const settings = logseq.settings as JiraPluginSettings;
 
-  responses.forEach(({ jiraURL, body, body: { key, fields } }) => {
-
-    // const statusCategoryIcon = statusCategoryGenerator(fields.status.statusCategory.colorName);
-    // const statusCategoryName = fields.status.statusCategory.name;
-    // const summary = fields.summary;
-
-    let text = '';
-    if (enableOrgMode) {
-      text = `[[${jiraURL}][${formatIssue(settings.issueFormatOrgMode, body)}]]`;//`[[${jiraURL}][${statusCategoryIcon} ${statusCategoryName} - ${key}|${summary}]]`;
-    }
-    else {
-      text = `[${formatIssue(settings.issueFormat, body)}](${jiraURL})`;
-    }
-
-    // const text = enableOrdMode ? `[[${jiraURL}][${statusCategoryGenerator(fields.status.statusCategory.colorName)} ${fields.status.statusCategory.name} - ${key}|${fields.summary}]]` :
-    //   `[${statusCategoryGenerator(fields.status.statusCategory.colorName)} ${fields.status.statusCategory.name} - ${key}|${fields.summary}](${jiraURL})`;
+  responses.forEach((issueWithDomain: IssuesWithDomain) => {
+    const { key, fields } = issueWithDomain.body;
+    const text = formatIssue(issueWithDomain, settings);
 
     data[key] = {
       text: text,
@@ -282,8 +324,9 @@ function generateTextFromResponse(responses: IssuesWithDomain[], enableOrgMode: 
       creator: fields.creator?.displayName ?? 'None',
       reporter: fields.reporter?.displayName ?? 'None',
       assignee: fields.assignee?.displayName ?? 'None',
-      fixVersion: fields.fixVersions?.[0]?.name ?? 'None',
+      fixVersion: fields.fixVersions?.map(v => v.name).join(', ') ?? 'None',
       resolution: fields.resolution?.name ?? null,
+      customTags: settings.appendCustomTags
     };
   });
   return data;
@@ -344,9 +387,9 @@ function formatTextBlock(input: string, keyValuePairs: Record<string, string>): 
 }
 
 // Generate properties object from data
-function genProperties(properties: any): Record<string, string> {
+function genProperties(properties: Data[string]): Record<string, string> {
   const { assignee, priority, fixVersion, status, reporter, summary, resolution } = properties;
-  const settings = logseq.settings as unknown as Settings;
+  const settings = logseq.settings as JiraPluginSettings;
   const {
     showSummary,
     showAssignee,
@@ -355,6 +398,7 @@ function genProperties(properties: any): Record<string, string> {
     showStatus,
     showReporter,
     showResolution,
+    appendCustomTags
   } = settings;
 
   const propertyObject: Record<string, string> = {};
@@ -366,9 +410,9 @@ function genProperties(properties: any): Record<string, string> {
   if (showStatus) propertyObject.status = status;
   if (showReporter) propertyObject.reporter = reporter;
   if (showResolution && resolution) propertyObject.resolution = resolution;
+  if (appendCustomTags) propertyObject.tags = appendCustomTags;
 
   return propertyObject;
 }
-
 
 logseq.ready(main).catch(console.error);

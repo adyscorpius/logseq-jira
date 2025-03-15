@@ -1,63 +1,6 @@
 import { SettingSchemaDesc } from '@logseq/libs/dist/LSPlugin.user';
 
-export type AuthTypes = "Basic Auth" | "PAT";
-export type APIVersions = "3" | "2";
-
-export type JiraPluginSettings = {
-  disabled: boolean,
-  
-  issueFormat: string,
-  issueFormatOrgMode: string,
-
-  jiraBaseURL: string,
-  jiraUsername: string,
-  jiraAPIToken: string,
-  jiraAuthType: AuthTypes,
-  jiraAPIVersion: APIVersions,
-  updateInlineText: boolean,
-  autoRefresh: "Yes" | "No",
-  addToBlockProperties: boolean,
-  showSummary: boolean,
-  showAssignee: boolean,
-  showPriority: boolean,
-  showFixVersion: boolean,
-  showStatus: boolean,
-  showReporter: boolean,
-  showResolution: boolean,
-  enableSecond: boolean,
-  // Second Account settings
-  jiraBaseURL2: string,
-  jiraUsername2: string,
-  jiraAPIToken2: string,
-  jiraAuthType2: AuthTypes,
-  jiraAPIVersion2: APIVersions,
-
-  jqlQueryTitle: string,
-  jqlQuery: string
-} & Record<string, unknown>
-
 export const settings: SettingSchemaDesc[] = [
-  {
-    key: "issueFormat",
-    title: "jiraFormat",
-    description: "Set up your main JIRA account here.",
-    type: "string",
-    default: "${statuscategoryicon} ${statuscategoryname} - ${key}|${summary}"
-  },
-  {
-    key: "issueFormatOrgMode",
-    title: "jiraFormatOrgMode",
-    description: "Set up your main JIRA account here.",
-    type: "string",
-    default: "${statuscategoryicon} ${statuscategoryname} - ${key}|${summary}"
-  },
-  {
-    key: "jira_TEMP",
-    title: "jira_TEMP",
-    description: "jira_TEMP",
-    type: 'object',
-    default: [{hello: "test", hello2: "test2"}]
-  },
   {
     key: "primarySettings",
     title: "Primary JIRA Account Settings",
@@ -110,6 +53,29 @@ export const settings: SettingSchemaDesc[] = [
     description: "Customize how JIRA issue details are shown in your notes.",
     type: "heading",
     default: null
+  },
+  {
+    key: "issueLinkTextFormat",
+    title: "Issue Format",
+    description: "Issue link text customization.",
+    type: "string",
+    default: "%statuscategoryicon% %statuscategoryname% - %key%|%summary%"
+  },
+  {
+    key: "issueLinkTextFormatOrgMode",
+    title: "Issue Format For Org Mode",
+    description: "Issue link text customization for Org Mode.",
+    type: "string",
+    default: "%statuscategoryicon% %statuscategoryname% - %key%|%summary%"
+  },
+  {
+    key: "updateOnPaste",
+    title: "Experimental: Update Issue when you Paste it",
+    description: "Automatically update Issue when you Paste it in LogSeq.",
+    type: "enum",
+    enumPicker: "radio",
+    enumChoices: ["Yes", "No"],
+    default: "No"
   },
   {
     key: "updateInlineText",
@@ -189,6 +155,13 @@ export const settings: SettingSchemaDesc[] = [
     type: "boolean",
     default: false,
     title: "Show Resolution",
+  },
+  {
+    key: "appendCustomTags",
+    title: "Append your custom tags",
+    description: "Append your custom tags.",
+    type: "string",
+    default: ""
   },
 
   // Second Account settings
