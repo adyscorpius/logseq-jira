@@ -1,0 +1,10 @@
+{
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2,
+    "editor.detectIndentation": false,
+    "javascript.format.placeOpenBraceOnNewLineForControlBlocks": false,
+    "javascript.format.placeOpenBraceOnNewLineForFunctions": false,
+    "typescript.format.placeOpenBraceOnNewLineForControlBlocks": false,
+    "typescript.format.placeOpenBraceOnNewLineForFunctions": false,
+    "javascript.format.insertSpaceAfterOpeningAndBeforeClosingJsxExpressionBraces": true
+}
