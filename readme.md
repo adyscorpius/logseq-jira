@@ -30,6 +30,8 @@ Customize how JIRA issue details are shown in your notes:
 
 | Setting Key             | Title                    | Description                                                                                         | Type    | Default                    |
 |-------------------------|--------------------------|-----------------------------------------------------------------------------------------------------|---------|----------------------------|
+issueLinkTextFormat | Issue Format  | Issue link text customization. | String | %statuscategoryicon% %statuscategoryname% - %key%\|%summary% |
+issueLinkTextFormatOrgMode | Issue Format For Org Mode | Issue link text customization for Org Mode. | String | %statuscategoryicon% %statuscategoryname% - %key%\|%summary% |
 | updateInlineText        | Hyperlink JIRA Issue Keys | Automatically hyperlink JIRA issue keys with their summaries.                                       | Boolean | true                       |
 | autoRefresh             | Auto Refresh Jira Links | Experimental: Automatically refresh all links at start of Logseq.                                       | Enum | No                       |
 | enableOrgMode            | Support for Org-Mode vaults | If you use org mode for your content, enable this flag. Turned off by default | Boolean | false                      |
@@ -41,6 +43,7 @@ Customize how JIRA issue details are shown in your notes:
 | showStatus              | Show Status              | Display the issue status.                                                                           | Boolean | false                      |
 | showReporter            | Show Reporter            | Display the issue reporter.                                                                         | Boolean | false                      |
 | showResolution          | Show Resolution          | Display the issue resolution.                                                                       | Boolean | false                      |
+| appendCustomTags          | Append your custom tags          | Append your custom tags.                                                                       | String | ""                      |
 
 ### Settings for a Second JIRA Account (Optional)
 
@@ -54,6 +57,20 @@ Configure a second JIRA account if needed:
 | jiraAPIToken2           | JIRA API Token for Second Account | Enter the API token for your second JIRA account. You can generate one [here](https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/). | String  | ""                         |
 | jiraAuthType2           | JIRA Authentication Method for Second Account | Choose the authentication method for your second account: Basic Auth or Personal Access Tokens.       | Enum    | Basic Auth                 |
 | jiraAPIVersion2         | JIRA API Version for Second Account | Select the API version used by your second JIRA instance. Change this only if you use an older on-premise version. | Enum    | 3                          |
+
+### Possible issue text customization tokens (case insensitive)
+* %key%
+* %statusCategoryIcon%
+* %statusCategoryName%
+* %summary%
+* %assignee%
+* %priority%
+* %fixVersion%
+* %status%
+* %issuetype%
+* %creator%
+* %reporter%
+* %resolution%
 
 ## Usage
 
@@ -89,8 +106,8 @@ If you enable the block properties settings, the plugin will add additional JIRA
 - [x]  Experimental: Support for JQL queries in children blocks (maxes out at 50 right now)
 - [x]  Experimental: Auto refresh/update all links when page is loaded. 
 - [x]  Support for Org Mode vaults. 
+- [x]  Create your own Link description format with Jira variables ( '{issueKey} - {status} - {summary}' )
 - [ ]  Auto refresh all Jira links across vault (need to verify performance impact on doing this).
-- [ ]  Create your own Link description format with Jira variables ( '{issueKey} - {status} - {summary}' )
 
 ### How to build the plugin
 

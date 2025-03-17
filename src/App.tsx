@@ -1,5 +1,5 @@
 import React, { useRef } from "react";
-import { useAppVisible } from "./utils";
+import { useAppVisible } from "./utils/utils";
 
 function App() {
   const innerRef = useRef<HTMLDivElement>(null);
