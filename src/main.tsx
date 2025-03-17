@@ -64,12 +64,7 @@ async function main() {
   logseq.Editor.registerSlashCommand('Jira: Update Issue', async () => {
     await updateJiraIssue(false);
   });
-
-  // Register Slash command for Update issue.
-  logseq.Editor.registerSlashCommand('Jira: debugger', async () => {
-    debugger;
-  });
-
+  
   const jiraSettings = logseq.settings as JiraPluginSettings;
 
   // Register Slash command for 2nd organization if enabled.
