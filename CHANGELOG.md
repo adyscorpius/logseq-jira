@@ -1,3 +1,10 @@
+# [0.7.0](https://github.com/adyscorpius/logseq-jira/compare/v0.6.1...v0.7.0) (2025-03-17)
+
+
+### Features
+
+* Add append tags thanks to [@stantler](https://github.com/stantler) ([a37d1b7](https://github.com/adyscorpius/logseq-jira/commit/a37d1b708439c4d96e5f7617ed42e7986edca8d0))
+
 ## [0.6.1](https://github.com/adyscorpius/logseq-jira/compare/v0.6.0...v0.6.1) (2024-06-28)
 
 
