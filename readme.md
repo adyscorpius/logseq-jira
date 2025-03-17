@@ -58,7 +58,7 @@ Configure a second JIRA account if needed:
 | jiraAuthType2           | JIRA Authentication Method for Second Account | Choose the authentication method for your second account: Basic Auth or Personal Access Tokens.       | Enum    | Basic Auth                 |
 | jiraAPIVersion2         | JIRA API Version for Second Account | Select the API version used by your second JIRA instance. Change this only if you use an older on-premise version. | Enum    | 3                          |
 
-### Possible issue text customization tokens (case insensitive)
+### Possible issue text customization tokens (case insensitive) - New Feature
 * %key%
 * %statusCategoryIcon%
 * %statusCategoryName%
