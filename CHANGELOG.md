@@ -1,3 +1,11 @@
+## [0.7.1](https://github.com/adyscorpius/logseq-jira/compare/v0.7.0...v0.7.1) (2025-03-19)
+
+
+### Bug Fixes
+
+* Code improvements ([0370cd4](https://github.com/adyscorpius/logseq-jira/commit/0370cd40295d0545b9ace6655fdfdda2ca627261))
+* Code quality improvements ([fd31c90](https://github.com/adyscorpius/logseq-jira/commit/fd31c905c038351f29b52fa40db00f431ed79378))
+
 # [0.7.1] Some issue happened here. This should be fixed with [0.7.2]
 
 # [0.7.0](https://github.com/adyscorpius/logseq-jira/compare/v0.6.1...v0.7.0) (2025-03-17)
