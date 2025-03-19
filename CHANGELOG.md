@@ -1,3 +1,5 @@
+# [0.7.1] Some issue happened here. This should be fixed with [0.7.2]
+
 # [0.7.0](https://github.com/adyscorpius/logseq-jira/compare/v0.6.1...v0.7.0) (2025-03-17)
 
 
