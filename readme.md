@@ -16,13 +16,13 @@ Check out the discussion on Logseq Forums by [clicking here](https://discuss.log
 
 Configure the primary JIRA account with the following settings:
 
-| Setting Key             | Title                    | Description                                                                                         | Type    | Default                    |
-|-------------------------|--------------------------|-----------------------------------------------------------------------------------------------------|---------|----------------------------|
-| jiraBaseURL             | JIRA Base URL            | Enter your JIRA instance's base URL (e.g., xyz.atlassian.net). Do not include 'https://' or a trailing '/'. | String  | orgname.atlassian.net      |
-| jiraUsername            | JIRA Username            | Enter your JIRA username (usually your email address).                                              | String  | ""                         |
-| jiraAPIToken            | JIRA API Token           | Enter your JIRA API token. You can generate one [here](https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/). | String  | ""                         |
-| jiraAuthType            | JIRA Authentication Method | Choose your authentication method: Basic Auth or Personal Access Tokens.                             | Enum    | Basic Auth                 |
-| jiraAPIVersion          | JIRA API Version         | Select the API version your organization uses. Change this only if you use an older on-premise version. | Enum    | 3                          |
+| Setting Key    | Title                      | Description                                                                                                                                                 | Type   | Default               |
+|----------------|----------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|--------|-----------------------|
+| jiraBaseURL    | JIRA Base URL              | Enter your JIRA instance's base URL (e.g., xyz.atlassian.net). Do not include 'https://' or a trailing '/'.                                                 | String | orgname.atlassian.net |
+| jiraUsername   | JIRA Username              | Enter your JIRA username (usually your email address).                                                                                                      | String | ""                    |
+| jiraAPIToken   | JIRA API Token             | Enter your JIRA API token. You can generate one [here](https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/). | String | ""                    |
+| jiraAuthType   | JIRA Authentication Method | Choose your authentication method: Basic Auth or Personal Access Tokens.                                                                                    | Enum   | Basic Auth            |
+| jiraAPIVersion | JIRA API Version           | Select the API version your organization uses. Change this only if you use an older on-premise version.                                                     | Enum   | 3                     |
 
 ### Display Options for JIRA Data
 
@@ -36,6 +36,9 @@ issueLinkTextFormatOrgMode | Issue Format For Org Mode. | Issue link text custom
 | autoRefresh             | Auto Refresh Jira Links | Experimental: Automatically refresh all links at start of Logseq.                                       | Enum | No                       |
 | enableOrgMode            | Support for Org-Mode vaults | If you use org mode for your content, enable this flag. Turned off by default | Boolean | false                      |
 | addToBlockProperties    | Add JIRA Fields as Block Properties | Include additional JIRA fields as properties in your text blocks.                                    | Boolean | false                      |
+| showLink             | Show issue link             | Display the issue link.                                                                          | Boolean | false                      |
+| showKey             | Show issue key             | Display the issue key.                                                                          | Boolean | false                      |
+| showLinkedKey             | Show issue key as link.             | Display the issue key as link.                                                                          | Boolean | false                      |
 | showSummary             | Show Summary             | Display the issue summary.                                                                          | Boolean | false                      |
 | showAssignee            | Show Assignee            | Display the issue assignee.                                                                         | Boolean | false                      |
 | showPriority            | Show Priority            | Display the issue priority.                                                                         | Boolean | false                      |
@@ -49,14 +52,14 @@ issueLinkTextFormatOrgMode | Issue Format For Org Mode. | Issue link text custom
 
 Configure a second JIRA account if needed:
 
-| Setting Key             | Title                    | Description                                                                                         | Type    | Default                    |
-|-------------------------|--------------------------|-----------------------------------------------------------------------------------------------------|---------|----------------------------|
-| enableSecond            | Enable Second JIRA Account | Enable or disable settings for a second JIRA account. Reload the plugin or restart Logseq after changing this setting. | Boolean | false                      |
-| jiraBaseURL2            | JIRA Base URL for Second Account | Enter the base URL for your second JIRA instance (e.g., xyz.atlassian.net). Do not include 'https://' or a trailing '/'. | String  | orgname.atlassian.net      |
-| jiraUsername2           | JIRA Username for Second Account | Enter the username for your second JIRA account (usually an email address).                           | String  | ""                         |
-| jiraAPIToken2           | JIRA API Token for Second Account | Enter the API token for your second JIRA account. You can generate one [here](https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/). | String  | ""                         |
-| jiraAuthType2           | JIRA Authentication Method for Second Account | Choose the authentication method for your second account: Basic Auth or Personal Access Tokens.       | Enum    | Basic Auth                 |
-| jiraAPIVersion2         | JIRA API Version for Second Account | Select the API version used by your second JIRA instance. Change this only if you use an older on-premise version. | Enum    | 3                          |
+| Setting Key     | Title                                         | Description                                                                                                                                                                        | Type    | Default               |
+|-----------------|-----------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|-----------------------|
+| enableSecond    | Enable Second JIRA Account                    | Enable or disable settings for a second JIRA account. Reload the plugin or restart Logseq after changing this setting.                                                             | Boolean | false                 |
+| jiraBaseURL2    | JIRA Base URL for Second Account              | Enter the base URL for your second JIRA instance (e.g., xyz.atlassian.net). Do not include 'https://' or a trailing '/'.                                                           | String  | orgname.atlassian.net |
+| jiraUsername2   | JIRA Username for Second Account              | Enter the username for your second JIRA account (usually an email address).                                                                                                        | String  | ""                    |
+| jiraAPIToken2   | JIRA API Token for Second Account             | Enter the API token for your second JIRA account. You can generate one [here](https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/). | String  | ""                    |
+| jiraAuthType2   | JIRA Authentication Method for Second Account | Choose the authentication method for your second account: Basic Auth or Personal Access Tokens.                                                                                    | Enum    | Basic Auth            |
+| jiraAPIVersion2 | JIRA API Version for Second Account           | Select the API version used by your second JIRA instance. Change this only if you use an older on-premise version.                                                                 | Enum    | 3                     |
 
 ### Possible issue text customization tokens (case insensitive) - New Feature
 * %key%

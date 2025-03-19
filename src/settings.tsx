@@ -108,6 +108,27 @@ export const settings: SettingSchemaDesc[] = [
     default: false,
   },
   {
+    key: "showKey",
+    description: "Display the issue key.",
+    type: "boolean",
+    default: false,
+    title: "Show key",
+  },
+  {
+    key: "showLink",
+    description: "Display the issue link.",
+    type: "boolean",
+    default: false,
+    title: "Show link",
+  },
+  {
+    key: "showLinkedKey",
+    description: "Display the issue key as link.",
+    type: "boolean",
+    default: false,
+    title: "Show linked key",
+  },
+  {
     key: "showSummary",
     description: "Display the issue summary.",
     type: "boolean",
