@@ -1,85 +1,135 @@
-import axios, { AxiosResponse } from "axios";
+import axios, { AxiosError, AxiosResponse } from "axios";
 import { Issue, JiraConnectionSettings, SearchResult } from "../jiraTypes";
 
-function getAuthHeader(user: string, token: string, authType: string): string {
-  let authHeader;
-  if (authType === "PAT") { // For PAT https://developer.atlassian.com/server/jira/platform/personal-access-token/#personal-access-token
-    return authHeader = `Bearer ${token}`;
+/**
+ * HTTP headers used in Jira API requests
+ */
+const API_HEADERS = {
+  'Accept': 'application/json',
+} as const;
+
+/**
+ * Authentication types supported by Jira
+ */
+type AuthType = 'PAT' | 'BASIC';
+
+/**
+ * Creates the appropriate authorization header for Jira API requests
+ * @param user - Username for basic auth or client ID for PAT
+ * @param token - Password for basic auth or PAT token
+ * @param authType - Type of authentication to use
+ * @returns Formatted authorization header string
+ */
+function createAuthHeader(user: string, token: string, authType: AuthType): string {
+  if (authType === 'PAT') {
+    return `Bearer ${token}`;
   }
-  
-  // Essential Basic Authentication https://developer.atlassian.com/server/jira/platform/basic-authentication/#basic-authentication
   return `Basic ${btoa(`${user}:${token}`)}`;
 }
 
-const ConstructRestApiUrl = (domain: string, apiVersion: string) => `https://${domain}/rest/api/${apiVersion}`;
+/**
+ * Constructs the base URL for Jira REST API endpoints
+ * @param domain - Jira domain (e.g., 'your-domain.atlassian.net')
+ * @param apiVersion - Jira API version (e.g., '3')
+ * @returns Complete REST API base URL
+ */
+const constructRestApiUrl = (domain: string, apiVersion: string): string => 
+  `https://${domain}/rest/api/${apiVersion}`;
 
-export const GetIssueUrl = (issue: Issue, domain: string) => `https://${domain}/browse/${issue.key}`;
+/**
+ * Generates the URL for viewing a Jira issue in the browser
+ * @param issue - Jira issue object
+ * @param domain - Jira domain
+ * @returns Complete issue URL
+ */
+export const getIssueUrl = (issue: Issue, domain: string): string => 
+  `https://${domain}/browse/${issue.key}`;
 
-export async function MakeSearchRequest(jqlQuery: string, connectionSettings: JiraConnectionSettings): Promise<SearchResult> {
+/**
+ * Makes a JQL search request to the Jira API
+ * @param jqlQuery - JQL query string
+ * @param connectionSettings - Jira connection settings
+ * @returns Promise resolving to search results
+ * @throws {AxiosError} If the API request fails
+ */
+export async function makeSearchRequest(
+  jqlQuery: string, 
+  connectionSettings: JiraConnectionSettings
+): Promise<SearchResult> {
   try {
-    const jqlQueryUrl = `${ConstructRestApiUrl(connectionSettings.baseURL, connectionSettings.APIVersion)}/search?jql=${encodeURIComponent(jqlQuery)}`;
-
+    const jqlQueryUrl = `${constructRestApiUrl(connectionSettings.baseURL, connectionSettings.APIVersion)}/search?jql=${encodeURIComponent(jqlQuery)}`;
+    
     const response = await axios.get<SearchResult>(jqlQueryUrl, {
       headers: {
-        'Accept': 'application/json',
-        'Authorization': getAuthHeader(
+        ...API_HEADERS,
+        'Authorization': createAuthHeader(
           connectionSettings.username,
           connectionSettings.APIToken,
-          connectionSettings.authType
+          connectionSettings.authType as AuthType
         )
       }
     });
 
-    console.log(`Response: ${response.status} ${response.statusText}`);
-
-    const result = response.data;
-    return Promise.resolve(result);
-
-  }
-  catch (error) {
-    console.error(error);
-    return Promise.reject(error);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error('Jira API Error:', {
+        status: error.response?.status,
+        message: error.message,
+        data: error.response?.data
+      });
+    }
+    throw error;
   }
 }
 
-export async function MakeIssueRequest(issueKeys: string[], connectionSettings: JiraConnectionSettings): Promise<Issue[]> {
+/**
+ * Fetches multiple Jira issues by their keys
+ * @param issueKeys - Array of Jira issue keys
+ * @param connectionSettings - Jira connection settings
+ * @returns Promise resolving to array of issues
+ * @throws {AxiosError} If any API request fails
+ */
+export async function makeIssueRequest(
+  issueKeys: string[], 
+  connectionSettings: JiraConnectionSettings
+): Promise<Issue[]> {
   try {
-
-    const authHeader = getAuthHeader(
+    const authHeader = createAuthHeader(
       connectionSettings.username,
       connectionSettings.APIToken,
-      connectionSettings.authType
+      connectionSettings.authType as AuthType
     );
 
-    const requests: Promise<AxiosResponse<Issue, any> | undefined>[] = [];
-
-    for (const issueKey of issueKeys) {
-      const issueRest = `${ConstructRestApiUrl(connectionSettings.baseURL, connectionSettings.APIVersion)}/issue/${issueKey}`;
-
-      const getFunc = async () => {
-        try {
-          return await axios.get<Issue>(issueRest, {
-            headers: {
-              'Accept': 'application/json',
-              'Authorization': authHeader
-            }
-          });
+    const requests = issueKeys.map(async (issueKey) => {
+      const issueUrl = `${constructRestApiUrl(connectionSettings.baseURL, connectionSettings.APIVersion)}/issue/${issueKey}`;
+      
+      try {
+        const response = await axios.get<Issue>(issueUrl, {
+          headers: {
+            ...API_HEADERS,
+            'Authorization': authHeader
+          }
+        });
+        return response.data;
+      } catch (error) {
+        if (axios.isAxiosError(error)) {
+          logseq.UI.showMsg(`Failed to fetch ${issueKey}: ${error.message}`, 'error');
         }
-        catch (e: any) {
-          logseq.UI.showMsg(`Failed to fetch ${issueKey}: ${e.message}`, 'error');
-          return undefined;
-        }
-      };
-      requests.push(getFunc());
+        return null;
+      }
+    });
+
+    const results = await Promise.all(requests);
+    return results.filter((issue): issue is Issue => issue !== null);
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error('Jira API Error:', {
+        status: error.response?.status,
+        message: error.message,
+        data: error.response?.data
+      });
     }
-
-    const resolvedRequests = await Promise.all(requests);
-
-    return Promise.resolve(resolvedRequests.filter(r => r !== undefined).map(r => r!.data));
-
-  }
-  catch (error) {
-    console.error(error);
-    return Promise.reject(error);
+    throw error;
   }
 }
