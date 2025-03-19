@@ -3,189 +3,123 @@ import React from "react";
 import { Issue, IssuesWithDomain, JiraConnectionSettings } from "../jiraTypes";
 import { JiraPluginSettings } from "../models";
 
-/**
- * Constants for the application
- */
-const CONSTANTS = {
-  ARGUMENT_BOUNDARY: '%',
-  STATUS_ICONS: {
-    DEFAULT: "⚪️",
-    YELLOW: "🔵",
-    GREEN: "🟢"
-  } as const,
-  STATUS_COLORS: {
-    YELLOW: "yellow",
-    GREEN: "green"
-  } as const
-} as const;
+let _visible = logseq.isMainUIVisible;
 
-/**
- * Type for status category colors
- */
-export type StatusCategoryColor = typeof CONSTANTS.STATUS_COLORS[keyof typeof CONSTANTS.STATUS_COLORS];
-
-/**
- * Current visibility state of the main UI
- */
-let mainUIVisible = logseq.isMainUIVisible;
-
-/**
- * Subscribes to a Logseq event and returns an unsubscribe function
- * @param eventName - Name of the event to subscribe to
- * @param handler - Event handler function
- * @returns Function to unsubscribe from the event
- */
 function subscribeLogseqEvent<T extends LSPluginUserEvents>(
   eventName: T,
-  handler: (event: { visible: boolean }) => void
-): () => void {
+  handler: (...args: any) => void
+) {
   logseq.on(eventName, handler);
-  return () => logseq.off(eventName, handler);
+  return () => {
+    logseq.off(eventName, handler);
+  };
 }
 
-/**
- * Subscribes to UI visibility changes
- * @param onChange - Callback function when visibility changes
- * @returns Function to unsubscribe from visibility changes
- */
-const subscribeToUIVisible = (onChange: () => void): (() => void) =>
-  subscribeLogseqEvent("ui:visible:changed", ({ visible }: { visible: boolean }) => {
-    mainUIVisible = visible;
+const subscribeToUIVisible = (onChange: () => void) =>
+  subscribeLogseqEvent("ui:visible:changed", ({ visible }) => {
+    _visible = visible;
     onChange();
   });
 
-/**
- * React hook to track main UI visibility
- * @returns Current visibility state
- */
-export const useAppVisible = (): boolean => {
-  return React.useSyncExternalStore(subscribeToUIVisible, () => mainUIVisible);
+export const useAppVisible = () => {
+  return React.useSyncExternalStore(subscribeToUIVisible, () => _visible);
 };
 
-/**
- * Regular expressions for matching Jira issues in different formats
- */
+// Regex declarations
 export const markdownRegexes = [
   /\[(?<description>(?:[^\[\]]|\[(?:[^\[\]]|\[[^\[\]]*\])*\])*)\]\((?<url>https?:\/\/[^\s\/]+\/browse\/(?<issue>[A-Z][A-Z0-9]{1,6}-[0-9]{1,8}))\)/gim,
   /(?<!\()(?<url>https*:\/\/.{1,25}.atlassian.net\/browse\/(?<issue>[A-Z][A-Z0-9]{1,6}-[0-9]{1,8}))(?!\))/gim,
   /(?<![\,\.\/\S])(?<issue>[A-Z][A-Z0-9]+-[0-9]+)(?!.?\])/gim,
-] as const;
+];
 
 export const orgModeRegexes = [
   /\[\[(?<url>https?:\/\/[^\s\/]+\/browse\/(?<issue>[A-Z][A-Z0-9]{1,6}-[0-9]{1,8}))\]\[(?<description>[^\]]*)\]\]/gim,
   /(?<!\[\[)(?<url>https*:\/\/.{1,25}.atlassian.net\/browse\/(?<issue>[A-Z][A-Z0-9]{1,6}-[0-9]{1,8}))(?!\]\])/gim,
   /(?<![\,\.\/\S])(?<issue>[A-Z][A-Z0-9]+-[0-9]+)(?!.?\]\])/gim,
-] as const;
+];
 
-/**
- * Regular expression for matching Jira issue keys
- */
-export const issueTestRegex = /([A-Z][A-Z0-9]+-[0-9]+)/gim;
+// Test regex for issue keys
+export const issueTestRegex: RegExp = /([A-Z][A-Z0-9]+-[0-9]+)/gim;
 
-/**
- * Extracts unique Jira issue keys from a string
- * @param str - String to extract issues from
- * @returns Array of unique issue keys
- */
+// Extract issues from block text
 export function extractIssues(str: string): string[] {
-  const matches = str.match(issueTestRegex) ?? [];
-  return [...new Set(matches)];
+  return [...new Set(str.match(issueTestRegex))];
 }
 
-/**
- * Generates an emoji icon based on status category color
- * @param color - Status category color
- * @returns Emoji icon representing the status
- */
-export function statusCategoryGenerator(color: StatusCategoryColor): string {
-  switch (color) {
-    case CONSTANTS.STATUS_COLORS.YELLOW:
-      return CONSTANTS.STATUS_ICONS.YELLOW;
-    case CONSTANTS.STATUS_COLORS.GREEN:
-      return CONSTANTS.STATUS_ICONS.GREEN;
+export function statusCategoryGenerator(content: string) {
+  let icon = "⚪️";
+
+  switch (content) {
+    case "yellow":
+      icon = "🔵";
+      break;
+    case "green":
+      icon = "🟢";
+      break;
     default:
-      return CONSTANTS.STATUS_ICONS.DEFAULT;
+      break;
+  }
+
+  return icon;
+}
+
+export function getJiraConnectionSettings(settings: JiraPluginSettings, useSecondOrg: boolean): JiraConnectionSettings {
+
+  if (!useSecondOrg) {
+    return {
+      baseURL: settings.jiraBaseURL,
+      username: settings.jiraUsername,
+      authType: settings.jiraAuthType,
+      APIToken: settings.jiraAPIToken,
+      APIVersion: settings.jiraAPIVersion,
+    }
+  }
+
+  return {
+    baseURL: settings.jiraBaseURL2,
+    username: settings.jiraUsername2,
+    authType: settings.jiraAuthType2,
+    APIToken: settings.jiraAPIToken2,
+    APIVersion: settings.jiraAPIVersion2,
   }
 }
 
-/**
- * Gets Jira connection settings based on whether to use second organization
- * @param settings - Plugin settings
- * @param useSecondOrg - Whether to use second organization settings
- * @returns Jira connection settings
- */
-export function getJiraConnectionSettings(
-  settings: JiraPluginSettings, 
-  useSecondOrg: boolean
-): JiraConnectionSettings {
-  const prefix = useSecondOrg ? '2' : '';
-  
-  return {
-    baseURL: settings[`jiraBaseURL${prefix}`],
-    username: settings[`jiraUsername${prefix}`],
-    authType: settings[`jiraAuthType${prefix}`],
-    APIToken: settings[`jiraAPIToken${prefix}`],
-    APIVersion: settings[`jiraAPIVersion${prefix}`],
-  };
+export function formatIssue({ jiraURL, body: issue }: IssuesWithDomain, settings: JiraPluginSettings): string {
+  if (settings.enableOrgMode) {
+    return `[[${jiraURL}][${formatIssueInternal(settings.issueLinkTextFormatOrgMode, issue)}]]`;
+  }
+
+  return `[${formatIssueInternal(settings.issueLinkTextFormat, issue)}](${jiraURL})`;
 }
 
-/**
- * Formats a Jira issue according to the specified settings
- * @param param0 - Object containing Jira URL and issue data
- * @param settings - Plugin settings
- * @returns Formatted issue string
- */
-export function formatIssue(
-  { jiraURL, body: issue }: IssuesWithDomain, 
-  settings: JiraPluginSettings
-): string {
-  const formattedText = formatIssueInternal(
-    settings.enableOrgMode ? settings.issueLinkTextFormatOrgMode : settings.issueLinkTextFormat,
-    issue
-  );
-
-  return settings.enableOrgMode
-    ? `[[${jiraURL}][${formattedText}]]`
-    : `[${formattedText}](${jiraURL})`;
-}
-
-/**
- * Internal function to format issue text according to a template
- * @param format - Format template string
- * @param issue - Issue data
- * @returns Formatted issue text
- */
+const argumentBoundryChar = '%';
 function formatIssueInternal(format: string, issue: Issue): string {
-  const statusCategoryIcon = statusCategoryGenerator(
-    issue.fields.status.statusCategory.colorName as StatusCategoryColor
-  );
+  const statusCategoryIcon = statusCategoryGenerator(issue.fields.status.statusCategory.colorName);
   const statusCategoryName = issue.fields.status.statusCategory.name;
 
   const replaceFunc = (input: string, searchMask: string, replaceMask: string): string => {
-    const regEx = new RegExp(
-      `${CONSTANTS.ARGUMENT_BOUNDARY}${searchMask}${CONSTANTS.ARGUMENT_BOUNDARY}`,
-      "ig"
-    );
+    var regEx = new RegExp(argumentBoundryChar + searchMask + argumentBoundryChar, "ig");
     return input.replace(regEx, replaceMask);
   };
 
   const formatMap = {
-    key: issue.key,
-    statuscategoryicon: statusCategoryIcon,
-    statuscategoryname: statusCategoryName,
-    summary: issue.fields.summary,
-    assignee: issue.fields.assignee?.displayName ?? 'None',
-    priority: issue.fields.priority?.name ?? 'None',
-    fixversion: issue.fields.fixVersions?.map(v => v.name).join(', ') ?? 'None',
-    status: issue.fields.status?.name ?? 'None',
-    issuetype: issue.fields.issuetype?.name ?? 'None',
-    creator: issue.fields.creator?.displayName ?? 'None',
-    reporter: issue.fields.reporter?.displayName ?? 'None',
-    resolution: issue.fields.resolution?.name ?? 'None',
-  } as const;
+    "key": issue.key,
+    "statuscategoryicon": statusCategoryIcon,
+    "statuscategoryname": statusCategoryName,
+    "summary": issue.fields.summary,
+    "assignee": issue.fields.assignee?.displayName ?? 'None',
+    "priority": issue.fields.priority?.name ?? 'None',
+    "fixversion": issue.fields.fixVersions?.map(v => v.name).join(', '),
+    "status": issue.fields.status?.name ?? 'None',
+    "issuetype": issue.fields.issuetype?.name ?? 'None',
+    "creator": issue.fields.creator?.displayName ?? 'None',
+    "reporter": issue.fields.reporter?.displayName ?? 'None',
+    "resolution": issue.fields.resolution?.name ?? 'None',
+  }
 
-  return Object.entries(formatMap).reduce(
-    (result, [mask, value]) => replaceFunc(result, mask, value),
-    format
-  );
+  for (const [mask, value] of Object.entries(formatMap)) {
+    format = replaceFunc(format, mask, value);
+  }
+
+  return format;
 }

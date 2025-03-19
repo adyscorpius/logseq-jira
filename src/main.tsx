@@ -8,22 +8,10 @@ import "./index.css";
 import { settings } from './settings';
 import type { JiraPluginSettings } from './models';
 import { logseq as PL } from "../package.json";
-import { 
-  extractIssues as extractIssueKeys, 
-  statusCategoryGenerator, 
-  orgModeRegexes, 
-  markdownRegexes, 
-  getJiraConnectionSettings, 
-  formatIssue,
-  type StatusCategoryColor 
-} from "./utils/utils";
+import { extractIssues as extractIssueKeys, statusCategoryGenerator, orgModeRegexes, markdownRegexes, getJiraConnectionSettings, formatIssue } from "./utils/utils";
 import { db } from "./db";
 import { BlockEntity } from "@logseq/libs/dist/LSPlugin";
-import { 
-  getIssueUrl, 
-  makeIssueRequest, 
-  makeSearchRequest 
-} from "./utils/jiraUtils";
+import { GetIssueUrl, MakeIssueRequest, MakeSearchRequest } from "./utils/jiraUtils";
 import { Issue, IssuesWithDomain } from "./jiraTypes";
 
 // Add Axios
@@ -147,27 +135,25 @@ async function getJQLResults(useSecondOrg: boolean = false) {
       throw new Error('Jira base URL not set.');
     }
 
-    const response = await makeSearchRequest(settings.jqlQuery, connectionSettings);
+    const response = await MakeSearchRequest(settings.jqlQuery, connectionSettings);
 
-    const issues: IssuesWithDomain[] = response.issues.map((issue: Issue) => ({
-      body: issue,
-      jiraURL: getIssueUrl(issue, connectionSettings.baseURL)
-    }));
+    const issues: IssuesWithDomain[] = response.issues.map((issue: Issue) => {
+      const jiraURL = GetIssueUrl(issue, connectionSettings.baseURL)
+      return { body: issue, jiraURL }
+    })
 
-    if (block) {
+    if (!!block) {
       const outputBlocks = issues.map((row: IssuesWithDomain) => {
-        const statusCategoryIcon = statusCategoryGenerator(
-          row.body.fields.status.statusCategory.colorName as StatusCategoryColor
-        );
+        const statusCategoryIcon = statusCategoryGenerator(row.body.fields.status.statusCategory.colorName);
         const statusCategoryName = row.body.fields.status.statusCategory.name;
         const summary = row.body.fields.summary;
         const key = row.body.key;
 
         if (enableOrgMode) {
-          return `[[${row.jiraURL}][${statusCategoryIcon} ${statusCategoryName} - ${key}|${summary}]]`;
+          return `[[${row.jiraURL}][${statusCategoryIcon} ${statusCategoryName} - ${key}|${summary}]]`
         }
 
-        return `[${statusCategoryIcon} ${statusCategoryName} - ${key}|${summary}](${row.jiraURL})`;
+        return `[${statusCategoryIcon} ${statusCategoryName} - ${key}|${summary}](${row.jiraURL})`
       });
 
       if (jqlTitle) {
@@ -176,17 +162,18 @@ async function getJQLResults(useSecondOrg: boolean = false) {
 
       await logseq.Editor.insertBatchBlock(
         block.uuid,
-        outputBlocks.map((content: string) => ({ content })),
+        outputBlocks.map((content: any) => ({
+          content: `${content}`,
+        })),
         {
           before: false,
           sibling: false
-        }
-      );
+        });
     }
-  } catch (e: unknown) {
-    const errorMessage = e instanceof Error ? e.message : 'Unknown error occurred';
-    logseq.UI.showMsg(`Failed to fetch JQL results: ${errorMessage}`, 'error');
+  } catch (e: any) {
+    logseq.UI.showMsg(`Failed to fetch JQL results: ${e.message}`, 'error');
   }
+
 }
 
 // Main function to update Jira issues
@@ -300,10 +287,10 @@ async function getIssues(issueKeys: Array<string>, useSecondOrg = false): Promis
       throw new Error('Jira base URL not set.');
     }
 
-    const response = await makeIssueRequest(issueKeys, connectionSettings);
+    const response = await MakeIssueRequest(issueKeys, connectionSettings);
 
     const issues: IssuesWithDomain[] = response.map((issue: Issue) => {
-      const jiraURL = getIssueUrl(issue, connectionSettings.baseURL)
+      const jiraURL = GetIssueUrl(issue, connectionSettings.baseURL)
       return { body: issue, jiraURL }
     })
 
