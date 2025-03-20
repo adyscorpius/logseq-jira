@@ -32,6 +32,8 @@ const axios = Axios.create();
 type Data = Record<
   string,
   {
+    link: string;
+    key: string;
     text: string;
     summary: string;
     status: string;
@@ -324,6 +326,8 @@ function generateTextFromResponse(responses: IssuesWithDomain[], enableOrgMode: 
     const text = formatIssue(issueWithDomain, settings);
 
     data[key] = {
+      link: issueWithDomain.jiraURL,
+      key: key,
       text: text,
       summary: fields.summary ?? 'None',
       status: fields.status?.name ?? 'None',
@@ -396,9 +400,12 @@ function formatTextBlock(input: string, keyValuePairs: Record<string, string>): 
 
 // Generate properties object from data
 function genProperties(properties: Data[string]): Record<string, string> {
-  const { assignee, priority, fixVersion, status, reporter, summary, resolution } = properties;
+  const { key, link, assignee, priority, fixVersion, status, reporter, summary, resolution } = properties;
   const settings = logseq.settings as JiraPluginSettings;
   const {
+    showLink,
+    showKey,
+    showLinkedKey,
     showSummary,
     showAssignee,
     showPriority,
@@ -411,6 +418,9 @@ function genProperties(properties: Data[string]): Record<string, string> {
 
   const propertyObject: Record<string, string> = {};
 
+  if (showLink) propertyObject.link = link;
+  if (showKey) propertyObject.key = key;
+  if (showLinkedKey) propertyObject.linkedKey = settings.enableOrgMode ? `[[${link}]][[${key}]]` : `[${key}](${link})`;
   if (showSummary) propertyObject.summary = summary;
   if (showAssignee) propertyObject.assignee = assignee;
   if (showPriority) propertyObject.priority = priority;

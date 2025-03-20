@@ -161,6 +161,21 @@ export const settings: SettingSchemaDesc[] = [
     "Include additional JIRA fields as properties in your text blocks."
   ),
   createBooleanSetting(
+    "showKey",
+    "Display the issue key.",
+    "Show key"
+  ),
+  createBooleanSetting(
+    "showLink",
+    "Display the issue link.",
+    "Show link"
+  ),
+  createBooleanSetting(
+    "showLinkedKey",
+    "Display the issue key as link.",
+    "Show linked key"
+  ),
+  createBooleanSetting(
     "showSummary",
     "Show Summary",
     "Display the issue summary."

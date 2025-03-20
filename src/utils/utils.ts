@@ -129,24 +129,65 @@ export function getJiraConnectionSettings(
   };
 }
 
-/**
- * Formats a Jira issue according to the specified settings
- * @param param0 - Object containing Jira URL and issue data
- * @param settings - Plugin settings
- * @returns Formatted issue string
- */
-export function formatIssue(
-  { jiraURL, body: issue }: IssuesWithDomain, 
-  settings: JiraPluginSettings
-): string {
-  const formattedText = formatIssueInternal(
-    settings.enableOrgMode ? settings.issueLinkTextFormatOrgMode : settings.issueLinkTextFormat,
-    issue
-  );
+export function getIssueLinkFormatConfig(settings: JiraPluginSettings): { formatLink: (jiraURL: string, text: string) => string, issueLinkTextFormat: string } {
+  if (settings.enableOrgMode) {
+    return {
+      formatLink: (jiraURL, text) => `[[${jiraURL}][${text}]]`,
+      issueLinkTextFormat: settings.issueLinkTextFormatOrgMode,
+    };
+  }
+  
+  return {
+    formatLink: (jiraURL, text) => `[${text}](${jiraURL})`,
+    issueLinkTextFormat: settings.issueLinkTextFormat,
+  };
+}
 
-  return settings.enableOrgMode
-    ? `[[${jiraURL}][${formattedText}]]`
-    : `[${formattedText}](${jiraURL})`;
+export function formatIssue({ jiraURL, body: issue }: IssuesWithDomain, settings: JiraPluginSettings): string {
+  const findBracketedLinks = /(?<!\\)(?:\\{2})?(\[([^\\\]]*(?:\\.[^\\\]]*)*)\])/g;
+  const findEscapedSymbols = /\\(.)/g;
+  const { formatLink, issueLinkTextFormat } = getIssueLinkFormatConfig(settings);
+  const formattedText = formatIssueInternal(issueLinkTextFormat, issue);
+
+  if (!findBracketedLinks.test(formattedText)) {
+    return formatLink(jiraURL, formattedText);
+  }
+
+  return markLinkInFormattedText(formattedText, findBracketedLinks)
+    .map(str => str.type === "link"
+        ? str.value.replaceAll(findBracketedLinks, (...args) => args[0].replace(args[1], formatLink(jiraURL, args[2])))
+        : str.value.replaceAll(findEscapedSymbols, "$1")
+    )
+    .join("");
+}
+
+export function markLinkInFormattedText(str: string, regex: RegExp) {
+  const result = [];
+  let lastIndex = 0;
+  let match;
+  
+  regex.lastIndex = 0;
+  while ((match = regex.exec(str)) !== null) {
+    if (match.index > lastIndex) {
+      result.push({ type: 'text', value: str.slice(lastIndex, match.index) });
+    }
+
+    if (match[0] !== match[1]) {
+      const splitIndex = (match[0] as string).indexOf(match[1]);
+      result.push({ type: 'text', value: match[0].substring(0, splitIndex) });
+      result.push({ type: 'link', value: match[0].substring(splitIndex) });
+    } else {
+      result.push({ type: 'link', value: match[0] });
+    }
+
+    lastIndex = regex.lastIndex;
+  }
+
+  if (lastIndex < str.length) {
+    result.push({ type: 'text', value: str.slice(lastIndex) });
+  }
+
+  return result;
 }
 
 /**
