@@ -129,29 +129,27 @@ export function getJiraConnectionSettings(
   };
 }
 
-export function getIssueLinkFormatConfig(settings: JiraPluginSettings): { formatLink: (jiraURL: string, text: string) => string, issueLinkTextFormat: string } {
-  if (settings.enableOrgMode) {
-    return {
-      formatLink: (jiraURL, text) => `[[${jiraURL}][${text}]]`,
-      issueLinkTextFormat: settings.issueLinkTextFormatOrgMode,
-    };
-  }
-  
-  return {
-    formatLink: (jiraURL, text) => `[${text}](${jiraURL})`,
-    issueLinkTextFormat: settings.issueLinkTextFormat,
-  };
+export function getIssueLinkFormat(settings: JiraPluginSettings): string {
+  return settings.enableOrgMode 
+    ? settings.issueLinkTextFormatOrgMode
+    : settings.issueLinkTextFormat;
+}
+
+export function formatIssueLink(jiraURL: string, text: string, settings: JiraPluginSettings): string {
+  return settings.enableOrgMode 
+    ? `[[${jiraURL}][${text}]]`
+    : `[${text}](${jiraURL})`;
 }
 
 export function formatIssue({ jiraURL, body: issue }: IssuesWithDomain, settings: JiraPluginSettings): string {
-  const { formatLink, issueLinkTextFormat } = getIssueLinkFormatConfig(settings);
+  const issueLinkTextFormat = getIssueLinkFormat(settings);
   const formattedText = formatIssueInternal(issueLinkTextFormat, issue, jiraURL);
 
   if (settings.formatExpertMode) {
     return formattedText;
   }
 
-  return formatLink(jiraURL, formattedText);
+  return formatIssueLink(jiraURL, formattedText, settings);
 }
 
 /**

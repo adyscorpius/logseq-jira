@@ -30,8 +30,8 @@ Customize how JIRA issue details are shown in your notes:
 
 | Setting Key             | Title                    | Description                                                                                         | Type    | Default                    |
 |-------------------------|--------------------------|-----------------------------------------------------------------------------------------------------|---------|----------------------------|
-issueLinkTextFormat | Issue Format  | Issue link text customization. The full text  will be a link by default. If you want to limit it to substring(s), you can surround them with brackets, e.g `[%key%] %summary%` will only make `%key%` a link. | String | %statuscategoryicon% %statuscategoryname% - %key%\|%summary% |
-issueLinkTextFormatOrgMode | Issue Format For Org Mode. | Issue link text customization for Org Mode. The full text will be a link by default. If you want to limit it to substring(s), you can surround them with brackets, e.g `[%key%] %summary%` will only make `%key%` a link. | String | %statuscategoryicon% %statuscategoryname% - %key%\|%summary% |
+| issueLinkTextFormat | Issue Format  | Issue link text customization. | String | %statuscategoryicon% %statuscategoryname% - %key%\|%summary% |
+| issueLinkTextFormatOrgMode | Issue Format For Org Mode | Issue link text customization for Org Mode. | String | %statuscategoryicon% %statuscategoryname% - %key%\|%summary% |
 | formatExpertMode        | Enable format export mode | When enabled, the link is not created automatically and can be added using %link%                                       | Boolean | false                       |
 | updateInlineText        | Hyperlink JIRA Issue Keys | Automatically hyperlink JIRA issue keys with their summaries.                                       | Boolean | true                       |
 | autoRefresh             | Auto Refresh Jira Links | Experimental: Automatically refresh all links at start of Logseq.                                       | Enum | No                       |
