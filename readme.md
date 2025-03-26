@@ -30,9 +30,9 @@ Customize how JIRA issue details are shown in your notes:
 
 | Setting Key             | Title                    | Description                                                                                         | Type    | Default                    |
 |-------------------------|--------------------------|-----------------------------------------------------------------------------------------------------|---------|----------------------------|
+| formatExpertMode        | Enable format export mode | When enabled, the link is not created automatically and can be added using %link%                                       | Boolean | false                       |
 | issueLinkTextFormat | Issue Format  | Issue link text customization. | String | %statuscategoryicon% %statuscategoryname% - %key%\|%summary% |
 | issueLinkTextFormatOrgMode | Issue Format For Org Mode | Issue link text customization for Org Mode. | String | %statuscategoryicon% %statuscategoryname% - %key%\|%summary% |
-| formatExpertMode        | Enable format export mode | When enabled, the link is not created automatically and can be added using %link%                                       | Boolean | false                       |
 | updateInlineText        | Hyperlink JIRA Issue Keys | Automatically hyperlink JIRA issue keys with their summaries.                                       | Boolean | true                       |
 | autoRefresh             | Auto Refresh Jira Links | Experimental: Automatically refresh all links at start of Logseq.                                       | Enum | No                       |
 | enableOrgMode            | Support for Org-Mode vaults | If you use org mode for your content, enable this flag. Turned off by default | Boolean | false                      |

@@ -216,6 +216,7 @@ async function updateJiraIssue(useSecondOrg: boolean, blockUUID?: string): Promi
       throw new Error('Select a block before running this command');
     }
 
+    // extract issuekeys from content only and ignoring the properties    
     const contentText = removeProperties(value.split("\n")).join("\n")
     const { key = "", linkedkey = "", link = "" } = currentBlock.properties ?? {};
     const issueKeys = extractIssueKeys(`${key} ${linkedkey} ${link} ${contentText}`);
