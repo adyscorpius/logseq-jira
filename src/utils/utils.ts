@@ -144,50 +144,14 @@ export function getIssueLinkFormatConfig(settings: JiraPluginSettings): { format
 }
 
 export function formatIssue({ jiraURL, body: issue }: IssuesWithDomain, settings: JiraPluginSettings): string {
-  const findBracketedLinks = /(?<!\\)(?:\\{2})?(\[([^\\\]]*(?:\\.[^\\\]]*)*)\])/g;
-  const findEscapedSymbols = /\\(.)/g;
   const { formatLink, issueLinkTextFormat } = getIssueLinkFormatConfig(settings);
-  const formattedText = formatIssueInternal(issueLinkTextFormat, issue);
+  const formattedText = formatIssueInternal(issueLinkTextFormat, issue, jiraURL);
 
-  if (!findBracketedLinks.test(formattedText)) {
-    return formatLink(jiraURL, formattedText);
+  if (settings.formatExpertMode) {
+    return formattedText;
   }
 
-  return markLinkInFormattedText(formattedText, findBracketedLinks)
-    .map(str => str.type === "link"
-        ? str.value.replaceAll(findBracketedLinks, (...args) => args[0].replace(args[1], formatLink(jiraURL, args[2])))
-        : str.value.replaceAll(findEscapedSymbols, "$1")
-    )
-    .join("");
-}
-
-export function markLinkInFormattedText(str: string, regex: RegExp) {
-  const result = [];
-  let lastIndex = 0;
-  let match;
-  
-  regex.lastIndex = 0;
-  while ((match = regex.exec(str)) !== null) {
-    if (match.index > lastIndex) {
-      result.push({ type: 'text', value: str.slice(lastIndex, match.index) });
-    }
-
-    if (match[0] !== match[1]) {
-      const splitIndex = (match[0] as string).indexOf(match[1]);
-      result.push({ type: 'text', value: match[0].substring(0, splitIndex) });
-      result.push({ type: 'link', value: match[0].substring(splitIndex) });
-    } else {
-      result.push({ type: 'link', value: match[0] });
-    }
-
-    lastIndex = regex.lastIndex;
-  }
-
-  if (lastIndex < str.length) {
-    result.push({ type: 'text', value: str.slice(lastIndex) });
-  }
-
-  return result;
+  return formatLink(jiraURL, formattedText);
 }
 
 /**
@@ -196,7 +160,7 @@ export function markLinkInFormattedText(str: string, regex: RegExp) {
  * @param issue - Issue data
  * @returns Formatted issue text
  */
-function formatIssueInternal(format: string, issue: Issue): string {
+function formatIssueInternal(format: string, issue: Issue, jiraLink: string): string {
   const statusCategoryIcon = statusCategoryGenerator(
     issue.fields.status.statusCategory.colorName as StatusCategoryColor
   );
@@ -223,6 +187,7 @@ function formatIssueInternal(format: string, issue: Issue): string {
     creator: issue.fields.creator?.displayName ?? 'None',
     reporter: issue.fields.reporter?.displayName ?? 'None',
     resolution: issue.fields.resolution?.name ?? 'None',
+    link: jiraLink,
   } as const;
 
   return Object.entries(formatMap).reduce(
