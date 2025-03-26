@@ -10,6 +10,7 @@ export type JiraPluginSettings = {
   jiraAuthType: AuthTypes,
   jiraAPIVersion: APIVersions,
 
+  formatExpertMode: boolean,
   issueLinkTextFormat: string,
   issueLinkTextFormatOrgMode: string,
   updateOnPaste: "Yes" | "No",

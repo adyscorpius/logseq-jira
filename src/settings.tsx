@@ -112,10 +112,16 @@ export const settings: SettingSchemaDesc[] = [
 
   // Display Settings
   createHeading("Display Options for JIRA Data", "Customize how JIRA issue details are shown in your notes."),
+  createBooleanSetting(
+    "formatExpertMode",
+    "Enable format export mode",
+    "When enabled, the link is not created automatically and can be added using %link%",
+    false
+  ),
   createStringSetting(
     "issueLinkTextFormat",
     "Issue Format",
-    "Issue link text customization. Available variables: %key%, %summary%, %status%, %priority%, %assignee%, %reporter%, %statuscategoryicon%, %statuscategoryname%",
+    "Issue link text customization. Available variables: %key%, %summary%, %status%, %priority%, %assignee%, %reporter%, %statuscategoryicon%, %statuscategoryname%, %link%",
     "%statuscategoryicon% %statuscategoryname% - %key%|%summary%"
   ),
   createStringSetting(
