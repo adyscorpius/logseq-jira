@@ -15,7 +15,8 @@ import {
   markdownRegexes, 
   getJiraConnectionSettings, 
   formatIssue,
-  type StatusCategoryColor 
+  type StatusCategoryColor, 
+  removeProperties
 } from "./utils/utils";
 import { db } from "./db";
 import { BlockEntity } from "@logseq/libs/dist/LSPlugin";
@@ -209,7 +210,9 @@ async function updateJiraIssue(useSecondOrg: boolean, blockUUID?: string): Promi
       throw new Error('Select a block before running this command');
     }
 
-    const issueKeys = extractIssueKeys(value);
+    const contentText = removeProperties(value.split("\n")).join("\n")
+    const { key = "", linkedkey = "", link = "" } = currentBlock.properties ?? {};
+    const issueKeys = extractIssueKeys(`${key} ${linkedkey} ${link} ${contentText}`);
 
     if (!issueKeys || issueKeys.length < 1) {
       logseq.UI.showMsg("Couldn't find any Jira issues.", 'error');

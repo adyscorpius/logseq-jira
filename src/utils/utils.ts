@@ -230,3 +230,21 @@ function formatIssueInternal(format: string, issue: Issue): string {
     format
   );
 }
+
+
+
+const propertyLineRegex = /^\s*([\w]+)::\s+(.*?)\s*?$/;
+
+/**
+ * Behavior of Logseq is that the first line matching a property pattern is a property.
+ */
+export function getFirstPropertyLine(lines: string[]) {
+  const firstPropertyLine = lines.findIndex(line => propertyLineRegex.test(line));
+  return firstPropertyLine === -1 ? lines.length : firstPropertyLine;
+}
+
+export function removeProperties(allLines: string[]): string[] {
+  const firstPropertyLine = getFirstPropertyLine(allLines);
+  const contentLines = allLines.slice(0, firstPropertyLine);
+  return contentLines;
+}
