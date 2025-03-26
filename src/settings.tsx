@@ -112,10 +112,16 @@ export const settings: SettingSchemaDesc[] = [
 
   // Display Settings
   createHeading("Display Options for JIRA Data", "Customize how JIRA issue details are shown in your notes."),
+  createBooleanSetting(
+    "formatExpertMode",
+    "Enable format export mode",
+    "When enabled, the link is not created automatically and can be added using %link%",
+    false
+  ),
   createStringSetting(
     "issueLinkTextFormat",
     "Issue Format",
-    "Issue link text customization. Available variables: %key%, %summary%, %status%, %priority%, %assignee%, %reporter%, %statuscategoryicon%, %statuscategoryname%",
+    "Issue link text customization. Available variables: %key%, %summary%, %status%, %priority%, %assignee%, %reporter%, %statuscategoryicon%, %statuscategoryname%, %link%",
     "%statuscategoryicon% %statuscategoryname% - %key%|%summary%"
   ),
   createStringSetting(
@@ -159,6 +165,21 @@ export const settings: SettingSchemaDesc[] = [
     "addToBlockProperties",
     "Add JIRA Fields as Block Properties",
     "Include additional JIRA fields as properties in your text blocks."
+  ),
+  createBooleanSetting(
+    "showKey",
+    "Display the issue key.",
+    "Show key"
+  ),
+  createBooleanSetting(
+    "showLink",
+    "Display the issue link.",
+    "Show link"
+  ),
+  createBooleanSetting(
+    "showLinkedKey",
+    "Display the issue key as link.",
+    "Show linked key"
   ),
   createBooleanSetting(
     "showSummary",

@@ -10,6 +10,7 @@ export type JiraPluginSettings = {
   jiraAuthType: AuthTypes,
   jiraAPIVersion: APIVersions,
 
+  formatExpertMode: boolean,
   issueLinkTextFormat: string,
   issueLinkTextFormatOrgMode: string,
   updateOnPaste: "Yes" | "No",
@@ -17,6 +18,9 @@ export type JiraPluginSettings = {
   autoRefresh: "Yes" | "No",
   enableOrgMode: boolean,
   addToBlockProperties: boolean,
+  showLink: boolean,
+  showKey: boolean,
+  showLinkedKey: boolean,
   showSummary: boolean,
   showAssignee: boolean,
   showPriority: boolean,

@@ -129,24 +129,27 @@ export function getJiraConnectionSettings(
   };
 }
 
-/**
- * Formats a Jira issue according to the specified settings
- * @param param0 - Object containing Jira URL and issue data
- * @param settings - Plugin settings
- * @returns Formatted issue string
- */
-export function formatIssue(
-  { jiraURL, body: issue }: IssuesWithDomain, 
-  settings: JiraPluginSettings
-): string {
-  const formattedText = formatIssueInternal(
-    settings.enableOrgMode ? settings.issueLinkTextFormatOrgMode : settings.issueLinkTextFormat,
-    issue
-  );
+export function getIssueLinkFormat(settings: JiraPluginSettings): string {
+  return settings.enableOrgMode 
+    ? settings.issueLinkTextFormatOrgMode
+    : settings.issueLinkTextFormat;
+}
 
-  return settings.enableOrgMode
-    ? `[[${jiraURL}][${formattedText}]]`
-    : `[${formattedText}](${jiraURL})`;
+export function formatIssueLink(jiraURL: string, text: string, settings: JiraPluginSettings): string {
+  return settings.enableOrgMode 
+    ? `[[${jiraURL}][${text}]]`
+    : `[${text}](${jiraURL})`;
+}
+
+export function formatIssue({ jiraURL, body: issue }: IssuesWithDomain, settings: JiraPluginSettings): string {
+  const issueLinkTextFormat = getIssueLinkFormat(settings);
+  const formattedText = formatIssueInternal(issueLinkTextFormat, issue, jiraURL);
+
+  if (settings.formatExpertMode) {
+    return formattedText;
+  }
+
+  return formatIssueLink(jiraURL, formattedText, settings);
 }
 
 /**
@@ -155,7 +158,7 @@ export function formatIssue(
  * @param issue - Issue data
  * @returns Formatted issue text
  */
-function formatIssueInternal(format: string, issue: Issue): string {
+function formatIssueInternal(format: string, issue: Issue, jiraLink: string): string {
   const statusCategoryIcon = statusCategoryGenerator(
     issue.fields.status.statusCategory.colorName as StatusCategoryColor
   );
@@ -182,10 +185,29 @@ function formatIssueInternal(format: string, issue: Issue): string {
     creator: issue.fields.creator?.displayName ?? 'None',
     reporter: issue.fields.reporter?.displayName ?? 'None',
     resolution: issue.fields.resolution?.name ?? 'None',
+    link: jiraLink,
   } as const;
 
   return Object.entries(formatMap).reduce(
     (result, [mask, value]) => replaceFunc(result, mask, value),
     format
   );
+}
+
+
+
+const propertyLineRegex = /^\s*([\w]+)::\s+(.*?)\s*?$/;
+
+/**
+ * Behavior of Logseq is that the first line matching a property pattern is a property.
+ */
+export function getFirstPropertyLine(lines: string[]) {
+  const firstPropertyLine = lines.findIndex(line => propertyLineRegex.test(line));
+  return firstPropertyLine === -1 ? lines.length : firstPropertyLine;
+}
+
+export function removeProperties(allLines: string[]): string[] {
+  const firstPropertyLine = getFirstPropertyLine(allLines);
+  const contentLines = allLines.slice(0, firstPropertyLine);
+  return contentLines;
 }

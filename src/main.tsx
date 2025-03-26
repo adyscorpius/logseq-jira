@@ -15,7 +15,8 @@ import {
   markdownRegexes, 
   getJiraConnectionSettings, 
   formatIssue,
-  type StatusCategoryColor 
+  type StatusCategoryColor, 
+  removeProperties
 } from "./utils/utils";
 import { db } from "./db";
 import { BlockEntity } from "@logseq/libs/dist/LSPlugin";
@@ -32,6 +33,8 @@ const axios = Axios.create();
 type Data = Record<
   string,
   {
+    link: string;
+    key: string;
     text: string;
     summary: string;
     status: string;
@@ -76,6 +79,9 @@ async function main() {
   logseq.Editor.registerSlashCommand('Jira: Update Issue', async () => {
     await updateJiraIssue(false);
   });
+  logseq.Editor.registerBlockContextMenuItem('Jira: Update Issue', async (event) => {
+    await updateJiraIssue(false, event.uuid);
+  })
   
   const jiraSettings = logseq.settings as JiraPluginSettings;
 
@@ -84,6 +90,9 @@ async function main() {
     logseq.Editor.registerSlashCommand('Jira: Update Issue for 2nd Org.', async () => {
       await updateJiraIssue(true);
     });
+    logseq.Editor.registerBlockContextMenuItem('Jira: Update Issue for 2nd Org.', async (event) => {
+      await updateJiraIssue(true, event.uuid);
+    })
   }
 
   const mainContentContainer = parent.document.getElementById(
@@ -207,7 +216,10 @@ async function updateJiraIssue(useSecondOrg: boolean, blockUUID?: string): Promi
       throw new Error('Select a block before running this command');
     }
 
-    const issueKeys = extractIssueKeys(value);
+    // extract issuekeys from content only and ignoring the properties    
+    const contentText = removeProperties(value.split("\n")).join("\n")
+    const { key = "", linkedkey = "", link = "" } = currentBlock.properties ?? {};
+    const issueKeys = extractIssueKeys(`${key} ${linkedkey} ${link} ${contentText}`);
 
     if (!issueKeys || issueKeys.length < 1) {
       logseq.UI.showMsg("Couldn't find any Jira issues.", 'error');
@@ -324,6 +336,8 @@ function generateTextFromResponse(responses: IssuesWithDomain[], enableOrgMode: 
     const text = formatIssue(issueWithDomain, settings);
 
     data[key] = {
+      link: issueWithDomain.jiraURL,
+      key: key,
       text: text,
       summary: fields.summary ?? 'None',
       status: fields.status?.name ?? 'None',
@@ -396,9 +410,12 @@ function formatTextBlock(input: string, keyValuePairs: Record<string, string>): 
 
 // Generate properties object from data
 function genProperties(properties: Data[string]): Record<string, string> {
-  const { assignee, priority, fixVersion, status, reporter, summary, resolution } = properties;
+  const { key, link, assignee, priority, fixVersion, status, reporter, summary, resolution } = properties;
   const settings = logseq.settings as JiraPluginSettings;
   const {
+    showLink,
+    showKey,
+    showLinkedKey,
     showSummary,
     showAssignee,
     showPriority,
@@ -411,6 +428,9 @@ function genProperties(properties: Data[string]): Record<string, string> {
 
   const propertyObject: Record<string, string> = {};
 
+  if (showLink) propertyObject.link = link;
+  if (showKey) propertyObject.key = key;
+  if (showLinkedKey) propertyObject.linkedkey = settings.enableOrgMode ? `[[${link}]][[${key}]]` : `[${key}](${link})`;
   if (showSummary) propertyObject.summary = summary;
   if (showAssignee) propertyObject.assignee = assignee;
   if (showPriority) propertyObject.priority = priority;
