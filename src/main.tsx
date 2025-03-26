@@ -429,7 +429,7 @@ function genProperties(properties: Data[string]): Record<string, string> {
 
   if (showLink) propertyObject.link = link;
   if (showKey) propertyObject.key = key;
-  if (showLinkedKey) propertyObject.linkedKey = settings.enableOrgMode ? `[[${link}]][[${key}]]` : `[${key}](${link})`;
+  if (showLinkedKey) propertyObject.linkedkey = settings.enableOrgMode ? `[[${link}]][[${key}]]` : `[${key}](${link})`;
   if (showSummary) propertyObject.summary = summary;
   if (showAssignee) propertyObject.assignee = assignee;
   if (showPriority) propertyObject.priority = priority;
