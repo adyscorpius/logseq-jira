@@ -79,6 +79,9 @@ async function main() {
   logseq.Editor.registerSlashCommand('Jira: Update Issue', async () => {
     await updateJiraIssue(false);
   });
+  logseq.Editor.registerBlockContextMenuItem('Jira: Update Issue', async (event) => {
+    await updateJiraIssue(false, event.uuid);
+  })
   
   const jiraSettings = logseq.settings as JiraPluginSettings;
 
@@ -87,6 +90,9 @@ async function main() {
     logseq.Editor.registerSlashCommand('Jira: Update Issue for 2nd Org.', async () => {
       await updateJiraIssue(true);
     });
+    logseq.Editor.registerBlockContextMenuItem('Jira: Update Issue for 2nd Org.', async (event) => {
+      await updateJiraIssue(true, event.uuid);
+    })
   }
 
   const mainContentContainer = parent.document.getElementById(
