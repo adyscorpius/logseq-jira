@@ -257,12 +257,20 @@ async function updateJiraIssueOnPaste(value: string, useSecondOrg: boolean): Pro
   try {
 
     const currentBlock = await logseq.Editor.getCurrentBlock();
+    const blockContent = await logseq.Editor.getEditingBlockContent();
+    const cursor = await logseq.Editor.getEditingCursorPosition();
+    if (cursor) {
+      value = blockContent.substring(0, cursor?.pos) + value + blockContent.substring(cursor?.pos);
+    }
 
     if (!currentBlock) {
       throw new Error('Select a block before running this command');
     }
 
-    const issueKeys = extractIssueKeys(value);
+    // extract issuekeys from content only and ignoring the properties    
+    const contentText = removeProperties(value.split("\n")).join("\n")
+    const { key = "", linkedkey = "", link = "" } = currentBlock.properties ?? {};
+    const issueKeys = extractIssueKeys(`${key} ${linkedkey} ${link} ${contentText}`);
 
     if (!issueKeys || issueKeys.length < 1) {
       logseq.UI.showMsg("Couldn't find any Jira issues.", 'error');
