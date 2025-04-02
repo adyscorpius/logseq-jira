@@ -13,6 +13,8 @@ export type JiraPluginSettings = {
   formatExpertMode: boolean,
   issueLinkTextFormat: string,
   issueLinkTextFormatOrgMode: string,
+  createPage: boolean,
+  pageTitleFormat: string,
   updateOnPaste: "Yes" | "No",
   updateInlineText: boolean,
   autoRefresh: "Yes" | "No",

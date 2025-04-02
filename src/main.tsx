@@ -8,18 +8,11 @@ import "./index.css";
 import { settings } from './settings';
 import type { JiraPluginSettings } from './models';
 import { logseq as PL } from "../package.json";
-import { 
-  extractIssues as extractIssueKeys, 
-  statusCategoryGenerator, 
-  orgModeRegexes, 
-  markdownRegexes, 
-  getJiraConnectionSettings, 
-  formatIssue,
-  type StatusCategoryColor, 
-  removeProperties
+import {
+  extractIssues as extractIssueKeys, formatIssue, getIssuePageTypeProperties, getJiraConnectionSettings, getIssuePage as getOrCreateIssuePage, getPagePreBlock, getMarkdownRegexes, getOrgModeRegexes, removeProperties, statusCategoryGenerator, updateBlockProperties, type StatusCategoryColor
 } from "./utils/utils";
 import { db } from "./db";
-import { BlockEntity } from "@logseq/libs/dist/LSPlugin";
+import { BlockEntity, PageEntity } from "@logseq/libs/dist/LSPlugin";
 import { 
   getIssueUrl, 
   makeIssueRequest, 
@@ -30,12 +23,13 @@ import { Issue, IssuesWithDomain } from "./jiraTypes";
 // Add Axios
 const axios = Axios.create();
 
-type Data = Record<
+export type Data = Record<
   string,
   {
     link: string;
     key: string;
     text: string;
+    pageTitle: string;
     summary: string;
     status: string;
     type: string;
@@ -234,12 +228,31 @@ async function updateJiraIssue(useSecondOrg: boolean, blockUUID?: string): Promi
     const settings = logseq.settings as JiraPluginSettings;
     const enableOrgMode = settings.enableOrgMode;
     const data = generateTextFromResponse(issues, enableOrgMode);
+    const blockProperties = settings.addToBlockProperties ? genProperties(data[issueKeys[0]]) : {};
+
+    if (settings.createPage) {
+      await Promise.all(Object.values(data).map(async issue => {
+        const page: PageEntity | undefined = await getOrCreateIssuePage(issue);
+
+        if (typeof page?.uuid === "string") {
+          const preBlock = await getPagePreBlock(page.name);
+
+          if (preBlock){
+            await updateBlockProperties(preBlock, {
+              ...getIssuePageTypeProperties(issue.key),
+              ...blockProperties,
+            });
+          }
+        }
+      }))
+    }
+
     let newValue = value;
     if (settings.updateInlineText) {
       newValue = await replaceAsync(value, data, enableOrgMode);
     }
 
-    if (settings.addToBlockProperties) {
+    if (settings.addToBlockProperties && !settings.createPage) {
       const properties = genProperties(data[issueKeys[0]]);
       newValue = formatTextBlock(newValue, properties);
     }
@@ -285,12 +298,31 @@ async function updateJiraIssueOnPaste(value: string, useSecondOrg: boolean): Pro
     const settings = logseq.settings as JiraPluginSettings;
     const enableOrgMode = settings.enableOrgMode;
     const data = generateTextFromResponse(issues, enableOrgMode);
+    const blockProperties = settings.addToBlockProperties ? genProperties(data[issueKeys[0]]) : {};
+
+    if (settings.createPage) {
+      await Promise.all(Object.values(data).map(async issue => {
+        const page: PageEntity | undefined = await getOrCreateIssuePage(issue);
+
+        if (typeof page?.uuid === "string") {
+          const preBlock = await getPagePreBlock(page.name);
+
+          if (preBlock){
+            await updateBlockProperties(preBlock, {
+              ...getIssuePageTypeProperties(issue.key),
+              ...blockProperties,
+            });
+          }
+        }
+      }))
+    }
+
     let newValue = value;
     if (settings.updateInlineText) {
       newValue = await replaceAsync(value, data, enableOrgMode);
     }
 
-    if (settings.addToBlockProperties) {
+    if (settings.addToBlockProperties && !settings.createPage) {
       const properties = genProperties(data[issueKeys[0]]);
       newValue = formatTextBlock(newValue, properties);
     }
@@ -341,12 +373,13 @@ function generateTextFromResponse(responses: IssuesWithDomain[], enableOrgMode: 
 
   responses.forEach((issueWithDomain: IssuesWithDomain) => {
     const { key, fields } = issueWithDomain.body;
-    const text = formatIssue(issueWithDomain, settings);
+    const {formattedText, pageTitle} = formatIssue(issueWithDomain, settings);
 
     data[key] = {
       link: issueWithDomain.jiraURL,
       key: key,
-      text: text,
+      text: formattedText,
+      pageTitle: pageTitle, 
       summary: fields.summary ?? 'None',
       status: fields.status?.name ?? 'None',
       type: fields.issuetype?.name ?? 'None',

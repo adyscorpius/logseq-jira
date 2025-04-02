@@ -135,6 +135,18 @@ export const settings: SettingSchemaDesc[] = [
     "Support Org Mode",
     "Enable this flag if you use Org Mode instead of Markdown"
   ),
+  createBooleanSetting(
+    "createPage",
+    "Create a page for every issue",
+    "When enabled, a page is created for every issue and then referenced at the current block",
+    false
+  ),
+  createStringSetting(
+    "pageTitleFormat",
+    "Format for page title",
+    "A format for the page title, if `pageTitleFormat` is activated.",
+    "%key% %summary%"
+  ),
 
   // Auto-update Settings
   createHeading("Auto-update Settings", "Configure automatic updates and synchronization."),

@@ -1,12 +1,13 @@
-import { LSPluginUserEvents } from "@logseq/libs/dist/LSPlugin.user";
+import { BlockEntity, LSPluginUserEvents, PageEntity } from "@logseq/libs/dist/LSPlugin.user";
 import React from "react";
 import { Issue, IssuesWithDomain, JiraConnectionSettings } from "../jiraTypes";
 import { JiraPluginSettings } from "../models";
+import { Data } from "../main";
 
 /**
  * Constants for the application
  */
-const CONSTANTS = {
+export const CONSTANTS = {
   ARGUMENT_BOUNDARY: '%',
   STATUS_ICONS: {
     DEFAULT: "⚪️",
@@ -16,7 +17,10 @@ const CONSTANTS = {
   STATUS_COLORS: {
     YELLOW: "yellow",
     GREEN: "green"
-  } as const
+  } as const,
+
+  PAGE_TYPE_PROPERTY: ".pagetype",
+  PAGE_TYPE_VALUE_JIRA_ISSUE: "jira-issue",
 } as const;
 
 /**
@@ -76,9 +80,9 @@ export const getMarkdownRegexes = () => {
   const { baseURL: org2baseURL } = getJiraConnectionSettings(settings, true);
   
   const regexes = [
-  /\[(?<description>(?:[^\[\]]|\[(?:[^\[\]]|\[[^\[\]]*\])*\])*)\]\((?<url>https?:\/\/[^\s\/]+\/browse\/(?<issue>[A-Z][A-Z0-9]{1,6}-[0-9]{1,8}))\)/gim,
+    /\[(?<description>(?:[^\[\]]|\[(?:[^\[\]]|\[[^\[\]]*\])*\])*)\]\((?<url>https?:\/\/[^\s\/]+\/browse\/(?<issue>[A-Z][A-Z0-9]{1,6}-[0-9]{1,8}))\)/gim,
     /(?<!\()(?<url>https?:\/\/.{1,25}.atlassian.net\/browse\/(?<issue>[A-Z][A-Z0-9]{1,6}-[0-9]{1,8}))(?!\))/gim,
-  /(?<![\,\.\/\S])(?<issue>[A-Z][A-Z0-9]+-[0-9]+)(?!.?\])/gim,
+    /(?<![\,\.\/\S])(?<issue>[A-Z][A-Z0-9]+-[0-9]+)(?!.?\])/gim,
   ];
 
   if (org1baseURL) {
@@ -100,9 +104,9 @@ export const getOrgModeRegexes = () => {
   const { baseURL: org2baseURL } = getJiraConnectionSettings(settings, true);
   
   const regexes = [
-  /\[\[(?<url>https?:\/\/[^\s\/]+\/browse\/(?<issue>[A-Z][A-Z0-9]{1,6}-[0-9]{1,8}))\]\[(?<description>[^\]]*)\]\]/gim,
-  /(?<!\[\[)(?<url>https*:\/\/.{1,25}.atlassian.net\/browse\/(?<issue>[A-Z][A-Z0-9]{1,6}-[0-9]{1,8}))(?!\]\])/gim,
-  /(?<![\,\.\/\S])(?<issue>[A-Z][A-Z0-9]+-[0-9]+)(?!.?\]\])/gim,
+    /\[\[(?<url>https?:\/\/[^\s\/]+\/browse\/(?<issue>[A-Z][A-Z0-9]{1,6}-[0-9]{1,8}))\]\[(?<description>[^\]]*)\]\]/gim,
+    /(?<!\[\[)(?<url>https*:\/\/.{1,25}.atlassian.net\/browse\/(?<issue>[A-Z][A-Z0-9]{1,6}-[0-9]{1,8}))(?!\]\])/gim,
+    /(?<![\,\.\/\S])(?<issue>[A-Z][A-Z0-9]+-[0-9]+)(?!.?\]\])/gim,
   ];
 
   if (org1baseURL) {
@@ -182,15 +186,19 @@ export function formatIssueLink(jiraURL: string, text: string, settings: JiraPlu
     : `[${text}](${jiraURL})`;
 }
 
-export function formatIssue({ jiraURL, body: issue }: IssuesWithDomain, settings: JiraPluginSettings): string {
+export function formatIssue({ jiraURL, body: issue }: IssuesWithDomain, settings: JiraPluginSettings): Record<"pageTitle" | "formattedText", string> {
   const issueLinkTextFormat = getIssueLinkFormat(settings);
-  const formattedText = formatIssueInternal(issueLinkTextFormat, issue, jiraURL);
+  const pageTitle = formatIssueInternal(settings.pageTitleFormat, issue, { link: jiraURL});
+  const formattedText = formatIssueInternal(issueLinkTextFormat, issue, { link: jiraURL, pageTitle });
 
   if (settings.formatExpertMode) {
-    return formattedText;
+    return { formattedText, pageTitle };
   }
 
-  return formatIssueLink(jiraURL, formattedText, settings);
+  return {
+    pageTitle,
+    formattedText: formatIssueLink(jiraURL, formattedText, settings),
+  };
 }
 
 /**
@@ -199,19 +207,11 @@ export function formatIssue({ jiraURL, body: issue }: IssuesWithDomain, settings
  * @param issue - Issue data
  * @returns Formatted issue text
  */
-function formatIssueInternal(format: string, issue: Issue, jiraLink: string): string {
+function formatIssueInternal(format: string, issue: Issue, extraKeys: Record<string, string> = {}): string {
   const statusCategoryIcon = statusCategoryGenerator(
     issue.fields.status.statusCategory.colorName as StatusCategoryColor
   );
   const statusCategoryName = issue.fields.status.statusCategory.name;
-
-  const replaceFunc = (input: string, searchMask: string, replaceMask: string): string => {
-    const regEx = new RegExp(
-      `${CONSTANTS.ARGUMENT_BOUNDARY}${searchMask}${CONSTANTS.ARGUMENT_BOUNDARY}`,
-      "ig"
-    );
-    return input.replace(regEx, replaceMask);
-  };
 
   const formatMap = {
     key: issue.key,
@@ -226,18 +226,28 @@ function formatIssueInternal(format: string, issue: Issue, jiraLink: string): st
     creator: issue.fields.creator?.displayName ?? 'None',
     reporter: issue.fields.reporter?.displayName ?? 'None',
     resolution: issue.fields.resolution?.name ?? 'None',
-    link: jiraLink,
+    ...extraKeys,
   } as const;
 
+  return interpolateFormat(formatMap, format);
+}
+
+export function interpolateFormat(formatMap: Record<string, string>, format: string): string {
   return Object.entries(formatMap).reduce(
     (result, [mask, value]) => replaceFunc(result, mask, value),
     format
   );
 }
 
+function replaceFunc(input: string, searchMask: string, replaceMask: string): string {
+  const regEx = new RegExp(
+    `${CONSTANTS.ARGUMENT_BOUNDARY}${searchMask}${CONSTANTS.ARGUMENT_BOUNDARY}`,
+    "ig"
+  );
+  return input.replace(regEx, replaceMask);
+}
 
-
-const propertyLineRegex = /^\s*([\w]+)::\s+(.*?)\s*?$/;
+const propertyLineRegex = /^\s*(.+?)::\s*(.*?)\s*?$/;
 
 /**
  * Behavior of Logseq is that the first line matching a property pattern is a property.
@@ -252,3 +262,54 @@ export function removeProperties(allLines: string[]): string[] {
   const contentLines = allLines.slice(0, firstPropertyLine);
   return contentLines;
 }
+
+export function getIssuePageByKey(key: string) {
+  return logseq.DB.datascriptQuery(`[
+          :find (pull ?p [*])
+          :in $ ?pt ?k
+          :where
+            [?p :block/name]
+            [?p :block/properties ?props]
+            [(get ?props :.pagetype) ?pagetype]
+            [(get ?props :key) ?key]
+            [(= ?pagetype ?pt)]
+            [(= ?key ?k)]
+          ]`, JSON.stringify(CONSTANTS.PAGE_TYPE_VALUE_JIRA_ISSUE), JSON.stringify(key));
+}
+
+export async function getIssuePage(issue: Data[string]) {
+  const [[existingPage] = []] = await getIssuePageByKey(issue.key);
+  const page: PageEntity | undefined = existingPage ?? await logseq.Editor.createPage(issue.pageTitle, {}, { redirect: false });
+
+  return page;
+}
+
+export async function getPagePreBlock(pageName: PageEntity["name"]) {
+  const [firstBlock] = await logseq.Editor.getPageBlocksTree(pageName);
+  const preBlock = firstBlock?.["preBlock?"]
+    ? firstBlock
+    : await logseq.Editor.insertBlock(firstBlock ? firstBlock.uuid : pageName, "", { isPageBlock: true, before: true });
+
+  return preBlock;
+}
+
+export async function updateBlockProperties(block: BlockEntity, blockProperties: Record<string, string>) {
+  const allLines = block.content.split("\n");
+  const firstPropertyLine = getFirstPropertyLine(allLines);
+  const content = allLines.slice(0, firstPropertyLine).join("\n");
+
+  await logseq.Editor.updateBlock(block?.uuid,
+    content,
+    {
+      properties: blockProperties
+    }
+  );
+}
+
+export function getIssuePageTypeProperties(issueKey: string): Record<string, string> {
+  return {
+    [CONSTANTS.PAGE_TYPE_PROPERTY]: CONSTANTS.PAGE_TYPE_VALUE_JIRA_ISSUE,
+    "key": issueKey
+  };
+}
+
