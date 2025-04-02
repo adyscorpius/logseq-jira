@@ -358,7 +358,7 @@ function generateTextFromResponse(responses: IssuesWithDomain[], enableOrgMode: 
 async function replaceAsync(str: string, data: Data, enableOrgMode: boolean): Promise<string> {
   let newString = str;
   const replacedIssues = new Set<string>();
-  const regexes = enableOrgMode ? orgModeRegexes : markdownRegexes;
+  const regexes = enableOrgMode ? getOrgModeRegexes() : getMarkdownRegexes();
 
   for (const regex of regexes) {
     newString = newString.replace(regex, (match, ...args) => {

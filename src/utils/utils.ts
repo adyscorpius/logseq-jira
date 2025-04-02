@@ -55,6 +55,11 @@ const subscribeToUIVisible = (onChange: () => void): (() => void) =>
   });
 
 /**
+ * Escape every symbol in `str` so that the return value is exactly expected in a Regex
+ */
+const escapeRegex = (str: string) => str.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+
+/**
  * React hook to track main UI visibility
  * @returns Current visibility state
  */
@@ -65,22 +70,58 @@ export const useAppVisible = (): boolean => {
 /**
  * Regular expressions for matching Jira issues in different formats
  */
-export const markdownRegexes = [
+export const getMarkdownRegexes = () => {
+  const settings = logseq.settings as JiraPluginSettings;
+  const { baseURL: org1baseURL } = getJiraConnectionSettings(settings, false);
+  const { baseURL: org2baseURL } = getJiraConnectionSettings(settings, true);
+  
+  const regexes = [
   /\[(?<description>(?:[^\[\]]|\[(?:[^\[\]]|\[[^\[\]]*\])*\])*)\]\((?<url>https?:\/\/[^\s\/]+\/browse\/(?<issue>[A-Z][A-Z0-9]{1,6}-[0-9]{1,8}))\)/gim,
-  /(?<!\()(?<url>https*:\/\/.{1,25}.atlassian.net\/browse\/(?<issue>[A-Z][A-Z0-9]{1,6}-[0-9]{1,8}))(?!\))/gim,
+    /(?<!\()(?<url>https?:\/\/.{1,25}.atlassian.net\/browse\/(?<issue>[A-Z][A-Z0-9]{1,6}-[0-9]{1,8}))(?!\))/gim,
   /(?<![\,\.\/\S])(?<issue>[A-Z][A-Z0-9]+-[0-9]+)(?!.?\])/gim,
-] as const;
+  ];
 
-export const orgModeRegexes = [
+  if (org1baseURL) {
+    regexes.push(new RegExp(`\\[([^\\]]*)\\]\\((https?:\\/\\/${escapeRegex(org1baseURL)}\\/browse\\/(?<issue>[A-Z]+-\\d+))\\)`, "gim"));
+    regexes.push(new RegExp(`(https?:\\/\\/${escapeRegex(org1baseURL)}\\/browse\\/(?<issue>[A-Z]+-\\d+))`, "gim"));
+  }
+
+  if (org2baseURL && settings.enableSecond) {
+    regexes.push(new RegExp(`\\[([^\\]]*)\\]\\((https?:\\/\\/${escapeRegex(org2baseURL)}\\/browse\\/(?<issue>[A-Z]+-\\d+))\\)`, "gim"));
+    regexes.push(new RegExp(`(https?:\\/\\/${escapeRegex(org2baseURL)}\\/browse\\/(?<issue>[A-Z]+-\\d+))`, "gim"));
+  }
+
+  return regexes;
+}
+
+export const getOrgModeRegexes = () => {
+  const settings = logseq.settings as JiraPluginSettings;
+  const { baseURL: org1baseURL } = getJiraConnectionSettings(settings, false);
+  const { baseURL: org2baseURL } = getJiraConnectionSettings(settings, true);
+  
+  const regexes = [
   /\[\[(?<url>https?:\/\/[^\s\/]+\/browse\/(?<issue>[A-Z][A-Z0-9]{1,6}-[0-9]{1,8}))\]\[(?<description>[^\]]*)\]\]/gim,
   /(?<!\[\[)(?<url>https*:\/\/.{1,25}.atlassian.net\/browse\/(?<issue>[A-Z][A-Z0-9]{1,6}-[0-9]{1,8}))(?!\]\])/gim,
   /(?<![\,\.\/\S])(?<issue>[A-Z][A-Z0-9]+-[0-9]+)(?!.?\]\])/gim,
-] as const;
+  ];
+
+  if (org1baseURL) {
+    regexes.push(new RegExp(`\\[([^\\]]*)\\]\\((https?:\\/\\/${escapeRegex(org1baseURL)}\\/browse\\/(?<issue>[A-Z]+-\\d+))\\)`, "gim"));
+    regexes.push(new RegExp(`(https?:\\/\\/${escapeRegex(org1baseURL)}\\/browse\\/(?<issue>[A-Z]+-\\d+))`, "gim"));
+  }
+
+  if (org2baseURL && settings.enableSecond) {
+    regexes.push(new RegExp(`\\[(https?:\\/\\/${escapeRegex(org2baseURL)}\\/browse\\/(?<issue>[A-Z]+-\\d+))\\]\\[([^\\]]*)\\]`, "gim"));
+    regexes.push(new RegExp(`(https?:\\/\\/${escapeRegex(org2baseURL)}\\/browse\\/(?<issue>[A-Z]+-\\d+))`, "gim"));
+  }
+
+  return regexes;
+}
 
 /**
  * Regular expression for matching Jira issue keys
  */
-export const issueTestRegex = /([A-Z][A-Z0-9]+-[0-9]+)/gim;
+export const issueTestRegex = /([A-Z][A-Z0-9]+-[0-9]+)(?=$|\s|]]|\)\)|\}\})/gim;
 
 /**
  * Extracts unique Jira issue keys from a string
