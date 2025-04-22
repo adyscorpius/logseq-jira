@@ -8,17 +8,11 @@ import "./index.css";
 import { settings } from './settings';
 import type { JiraPluginSettings } from './models';
 import { logseq as PL } from "../package.json";
-import { 
-  extractIssues as extractIssueKeys, 
-  statusCategoryGenerator, 
-  orgModeRegexes, 
-  markdownRegexes, 
-  getJiraConnectionSettings, 
-  formatIssue,
-  type StatusCategoryColor 
+import {
+  extractIssues as extractIssueKeys, formatIssue, getIssuePageTypeProperties, getJiraConnectionSettings, getIssuePage as getOrCreateIssuePage, getPagePreBlock, getMarkdownRegexes, getOrgModeRegexes, removeProperties, statusCategoryGenerator, updateBlockProperties, type StatusCategoryColor
 } from "./utils/utils";
 import { db } from "./db";
-import { BlockEntity } from "@logseq/libs/dist/LSPlugin";
+import { BlockEntity, PageEntity } from "@logseq/libs/dist/LSPlugin";
 import { 
   getIssueUrl, 
   makeIssueRequest, 
@@ -29,10 +23,13 @@ import { Issue, IssuesWithDomain } from "./jiraTypes";
 // Add Axios
 const axios = Axios.create();
 
-type Data = Record<
+export type Data = Record<
   string,
   {
+    link: string;
+    key: string;
     text: string;
+    pageTitle: string;
     summary: string;
     status: string;
     type: string;
@@ -76,6 +73,9 @@ async function main() {
   logseq.Editor.registerSlashCommand('Jira: Update Issue', async () => {
     await updateJiraIssue(false);
   });
+  logseq.Editor.registerBlockContextMenuItem('Jira: Update Issue', async (event) => {
+    await updateJiraIssue(false, event.uuid);
+  })
   
   const jiraSettings = logseq.settings as JiraPluginSettings;
 
@@ -84,6 +84,9 @@ async function main() {
     logseq.Editor.registerSlashCommand('Jira: Update Issue for 2nd Org.', async () => {
       await updateJiraIssue(true);
     });
+    logseq.Editor.registerBlockContextMenuItem('Jira: Update Issue for 2nd Org.', async (event) => {
+      await updateJiraIssue(true, event.uuid);
+    })
   }
 
   const mainContentContainer = parent.document.getElementById(
@@ -207,7 +210,10 @@ async function updateJiraIssue(useSecondOrg: boolean, blockUUID?: string): Promi
       throw new Error('Select a block before running this command');
     }
 
-    const issueKeys = extractIssueKeys(value);
+    // extract issuekeys from content only and ignoring the properties    
+    const contentText = removeProperties(value.split("\n")).join("\n")
+    const { key = "", linkedkey = "", link = "" } = currentBlock.properties ?? {};
+    const issueKeys = extractIssueKeys(`${key} ${linkedkey} ${link} ${contentText}`);
 
     if (!issueKeys || issueKeys.length < 1) {
       logseq.UI.showMsg("Couldn't find any Jira issues.", 'error');
@@ -222,12 +228,31 @@ async function updateJiraIssue(useSecondOrg: boolean, blockUUID?: string): Promi
     const settings = logseq.settings as JiraPluginSettings;
     const enableOrgMode = settings.enableOrgMode;
     const data = generateTextFromResponse(issues, enableOrgMode);
+    const blockProperties = settings.addToBlockProperties ? genProperties(data[issueKeys[0]]) : {};
+
+    if (settings.createPage) {
+      await Promise.all(Object.values(data).map(async issue => {
+        const page: PageEntity | undefined = await getOrCreateIssuePage(issue);
+
+        if (typeof page?.uuid === "string") {
+          const preBlock = await getPagePreBlock(page.name);
+
+          if (preBlock){
+            await updateBlockProperties(preBlock, {
+              ...getIssuePageTypeProperties(issue.key),
+              ...blockProperties,
+            });
+          }
+        }
+      }))
+    }
+
     let newValue = value;
     if (settings.updateInlineText) {
       newValue = await replaceAsync(value, data, enableOrgMode);
     }
 
-    if (settings.addToBlockProperties) {
+    if (settings.addToBlockProperties && !settings.createPage) {
       const properties = genProperties(data[issueKeys[0]]);
       newValue = formatTextBlock(newValue, properties);
     }
@@ -245,12 +270,20 @@ async function updateJiraIssueOnPaste(value: string, useSecondOrg: boolean): Pro
   try {
 
     const currentBlock = await logseq.Editor.getCurrentBlock();
+    const blockContent = await logseq.Editor.getEditingBlockContent();
+    const cursor = await logseq.Editor.getEditingCursorPosition();
+    if (cursor) {
+      value = blockContent.substring(0, cursor?.pos) + value + blockContent.substring(cursor?.pos);
+    }
 
     if (!currentBlock) {
       throw new Error('Select a block before running this command');
     }
 
-    const issueKeys = extractIssueKeys(value);
+    // extract issuekeys from content only and ignoring the properties    
+    const contentText = removeProperties(value.split("\n")).join("\n")
+    const { key = "", linkedkey = "", link = "" } = currentBlock.properties ?? {};
+    const issueKeys = extractIssueKeys(`${key} ${linkedkey} ${link} ${contentText}`);
 
     if (!issueKeys || issueKeys.length < 1) {
       logseq.UI.showMsg("Couldn't find any Jira issues.", 'error');
@@ -265,12 +298,31 @@ async function updateJiraIssueOnPaste(value: string, useSecondOrg: boolean): Pro
     const settings = logseq.settings as JiraPluginSettings;
     const enableOrgMode = settings.enableOrgMode;
     const data = generateTextFromResponse(issues, enableOrgMode);
+    const blockProperties = settings.addToBlockProperties ? genProperties(data[issueKeys[0]]) : {};
+
+    if (settings.createPage) {
+      await Promise.all(Object.values(data).map(async issue => {
+        const page: PageEntity | undefined = await getOrCreateIssuePage(issue);
+
+        if (typeof page?.uuid === "string") {
+          const preBlock = await getPagePreBlock(page.name);
+
+          if (preBlock){
+            await updateBlockProperties(preBlock, {
+              ...getIssuePageTypeProperties(issue.key),
+              ...blockProperties,
+            });
+          }
+        }
+      }))
+    }
+
     let newValue = value;
     if (settings.updateInlineText) {
       newValue = await replaceAsync(value, data, enableOrgMode);
     }
 
-    if (settings.addToBlockProperties) {
+    if (settings.addToBlockProperties && !settings.createPage) {
       const properties = genProperties(data[issueKeys[0]]);
       newValue = formatTextBlock(newValue, properties);
     }
@@ -321,10 +373,13 @@ function generateTextFromResponse(responses: IssuesWithDomain[], enableOrgMode: 
 
   responses.forEach((issueWithDomain: IssuesWithDomain) => {
     const { key, fields } = issueWithDomain.body;
-    const text = formatIssue(issueWithDomain, settings);
+    const {formattedText, pageTitle} = formatIssue(issueWithDomain, settings);
 
     data[key] = {
-      text: text,
+      link: issueWithDomain.jiraURL,
+      key: key,
+      text: formattedText,
+      pageTitle: pageTitle, 
       summary: fields.summary ?? 'None',
       status: fields.status?.name ?? 'None',
       type: fields.issuetype?.name ?? 'None',
@@ -344,7 +399,7 @@ function generateTextFromResponse(responses: IssuesWithDomain[], enableOrgMode: 
 async function replaceAsync(str: string, data: Data, enableOrgMode: boolean): Promise<string> {
   let newString = str;
   const replacedIssues = new Set<string>();
-  const regexes = enableOrgMode ? orgModeRegexes : markdownRegexes;
+  const regexes = enableOrgMode ? getOrgModeRegexes() : getMarkdownRegexes();
 
   for (const regex of regexes) {
     newString = newString.replace(regex, (match, ...args) => {
@@ -396,9 +451,12 @@ function formatTextBlock(input: string, keyValuePairs: Record<string, string>): 
 
 // Generate properties object from data
 function genProperties(properties: Data[string]): Record<string, string> {
-  const { assignee, priority, fixVersion, status, reporter, summary, resolution } = properties;
+  const { key, link, assignee, priority, fixVersion, status, reporter, summary, resolution } = properties;
   const settings = logseq.settings as JiraPluginSettings;
   const {
+    showLink,
+    showKey,
+    showLinkedKey,
     showSummary,
     showAssignee,
     showPriority,
@@ -411,6 +469,9 @@ function genProperties(properties: Data[string]): Record<string, string> {
 
   const propertyObject: Record<string, string> = {};
 
+  if (showLink) propertyObject.link = link;
+  if (showKey) propertyObject.key = key;
+  if (showLinkedKey) propertyObject.linkedkey = settings.enableOrgMode ? `[[${link}]][[${key}]]` : `[${key}](${link})`;
   if (showSummary) propertyObject.summary = summary;
   if (showAssignee) propertyObject.assignee = assignee;
   if (showPriority) propertyObject.priority = priority;

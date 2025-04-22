@@ -114,7 +114,12 @@ export async function makeIssueRequest(
         return response.data;
       } catch (error) {
         if (axios.isAxiosError(error)) {
-          logseq.UI.showMsg(`Failed to fetch ${issueKey}: ${error.message}`, 'error');
+          if (error.status == 404) {
+            logseq.UI.showMsg(`Could not find issue ${issueKey}.`, 'warning', { timeout: 3000 });
+
+          } else {
+            logseq.UI.showMsg(`Failed to fetch ${issueKey}: ${error.message}`, 'error');
+          }
         }
         return null;
       }
