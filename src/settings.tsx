@@ -112,10 +112,16 @@ export const settings: SettingSchemaDesc[] = [
 
   // Display Settings
   createHeading("Display Options for JIRA Data", "Customize how JIRA issue details are shown in your notes."),
+  createBooleanSetting(
+    "formatExpertMode",
+    "Enable format export mode",
+    "When enabled, the link is not created automatically and can be added using %link%",
+    false
+  ),
   createStringSetting(
     "issueLinkTextFormat",
     "Issue Format",
-    "Issue link text customization. Available variables: %key%, %summary%, %status%, %priority%, %assignee%, %reporter%, %statuscategoryicon%, %statuscategoryname%",
+    "Issue link text customization. Available variables: %key%, %summary%, %status%, %priority%, %assignee%, %reporter%, %statuscategoryicon%, %statuscategoryname%, %link%",
     "%statuscategoryicon% %statuscategoryname% - %key%|%summary%"
   ),
   createStringSetting(
@@ -128,6 +134,18 @@ export const settings: SettingSchemaDesc[] = [
     "enableOrgMode",
     "Support Org Mode",
     "Enable this flag if you use Org Mode instead of Markdown"
+  ),
+  createBooleanSetting(
+    "createPage",
+    "Create a page for every issue",
+    "When enabled, a page is created for every issue and then referenced at the current block",
+    false
+  ),
+  createStringSetting(
+    "pageTitleFormat",
+    "Format for page title",
+    "A format for the page title, if `pageTitleFormat` is activated.",
+    "%key% %summary%"
   ),
 
   // Auto-update Settings
@@ -159,6 +177,21 @@ export const settings: SettingSchemaDesc[] = [
     "addToBlockProperties",
     "Add JIRA Fields as Block Properties",
     "Include additional JIRA fields as properties in your text blocks."
+  ),
+  createBooleanSetting(
+    "showKey",
+    "Display the issue key.",
+    "Show key"
+  ),
+  createBooleanSetting(
+    "showLink",
+    "Display the issue link.",
+    "Show link"
+  ),
+  createBooleanSetting(
+    "showLinkedKey",
+    "Display the issue key as link.",
+    "Show linked key"
   ),
   createBooleanSetting(
     "showSummary",
