@@ -18,7 +18,8 @@ import {
   type StatusCategoryColor 
 } from "./utils/utils";
 import { db } from "./db";
-import { BlockEntity } from "@logseq/libs/dist/LSPlugin";
+import { getLogseqAdapter, AdapterFactory } from "./adapters/adapterFactory";
+import type { Block } from "./adapters/types";
 import { 
   getIssueUrl, 
   makeIssueRequest, 
@@ -56,6 +57,12 @@ async function main() {
   await db.open();
 
   console.info(`#${pluginId}: MAIN`);
+  
+  // Initialize the adapter and log environment info
+  const adapter = getLogseqAdapter();
+  const envInfo = AdapterFactory.getEnvironmentInfo();
+  console.info(`#${pluginId}: Using ${envInfo.adapterType} adapter (Logseq ${envInfo.logseqVersion})`);
+
   const root = ReactDOM.createRoot(document.getElementById("app")!);
 
   root.render(
@@ -65,23 +72,23 @@ async function main() {
   );
 
   // Setup Logseq settings
-  logseq.useSettingsSchema(settings);
+  adapter.useSettingsSchema(settings);
 
   // Register Logseq commands
-  logseq.Editor.registerSlashCommand('Jira: Pull JQL results', async () => {
+  adapter.registerSlashCommand('Jira: Pull JQL results', async () => {
     await getJQLResults();
   });
 
   // Register Slash command for Update issue.
-  logseq.Editor.registerSlashCommand('Jira: Update Issue', async () => {
+  adapter.registerSlashCommand('Jira: Update Issue', async () => {
     await updateJiraIssue(false);
   });
   
-  const jiraSettings = logseq.settings as JiraPluginSettings;
+  const jiraSettings = adapter.getSettings() as JiraPluginSettings;
 
   // Register Slash command for 2nd organization if enabled.
   if (jiraSettings.enableSecond) {
-    logseq.Editor.registerSlashCommand('Jira: Update Issue for 2nd Org.', async () => {
+    adapter.registerSlashCommand('Jira: Update Issue for 2nd Org.', async () => {
       await updateJiraIssue(true);
     });
   }
@@ -94,23 +101,27 @@ async function main() {
     mainContentContainer?.addEventListener("paste", pasteHandler);
   }
 
-  logseq.ready().then(async () => {
-    if (logseq.settings?.autoRefresh === "No") return;
+  adapter.ready().then(async () => {
+    const settings = adapter.getSettings();
+    if (settings?.autoRefresh === "No") return;
     console.log("Starting DB refresh");
 
     await db.issues.each(async (val) => {
       await updateJiraIssue(val.useSecondOrg, val.blockid);
     })
     const count = await db.issues.count();
-    logseq.UI.showMsg(`Experimental: Refresh ${count} Jira issues...`)
+    adapter.showMessage(`Experimental: Refresh ${count} Jira issues...`)
   })
 
-  logseq.beforeunload(async () => {
+  adapter.beforeUnload(async () => {
     db.close();
 
     if (jiraSettings.updateOnPaste === "Yes") {
       mainContentContainer?.removeEventListener("paste", pasteHandler);
     }
+    
+    // Cleanup adapter resources
+    AdapterFactory.resetAdapter();
   })
 
 }
@@ -129,21 +140,22 @@ async function pasteHandler(e: ClipboardEvent) {
 
 async function getJQLResults(useSecondOrg: boolean = false) {
   try {
-    const block = await logseq.Editor.getCurrentBlock();
+    const adapter = getLogseqAdapter();
+    const block = await adapter.getCurrentBlock();
 
-    if (!logseq.settings) {
-      logseq.UI.showMsg('Jira Plugin failed to get LogSeq settings');
+    const settings = adapter.getSettings() as JiraPluginSettings;
+    if (!settings) {
+      adapter.showMessage('Jira Plugin failed to get LogSeq settings', 'error');
       throw new Error(`Failed to get LogSeq settings`);
     }
 
-    const settings = logseq.settings as JiraPluginSettings;
     const connectionSettings = getJiraConnectionSettings(settings, useSecondOrg);
 
     const enableOrgMode = settings?.enableOrgMode as boolean;
     const jqlTitle = settings?.jqlQueryTitle;
 
     if (!connectionSettings.baseURL || !connectionSettings.APIToken || !connectionSettings.username) {
-      logseq.UI.showMsg('Jira credentials not set. Update in Plugin settings.')
+      adapter.showMessage('Jira credentials not set. Update in Plugin settings.', 'error');
       throw new Error('Jira base URL not set.');
     }
 
@@ -171,10 +183,10 @@ async function getJQLResults(useSecondOrg: boolean = false) {
       });
 
       if (jqlTitle) {
-        await logseq.Editor.updateBlock(block.uuid, jqlTitle);
+        await adapter.updateBlock(block.uuid, jqlTitle);
       }
 
-      await logseq.Editor.insertBatchBlock(
+      await adapter.insertBatchBlock(
         block.uuid,
         outputBlocks.map((content: string) => ({ content })),
         {
@@ -184,23 +196,25 @@ async function getJQLResults(useSecondOrg: boolean = false) {
       );
     }
   } catch (e: unknown) {
+    const adapter = getLogseqAdapter();
     const errorMessage = e instanceof Error ? e.message : 'Unknown error occurred';
-    logseq.UI.showMsg(`Failed to fetch JQL results: ${errorMessage}`, 'error');
+    adapter.showMessage(`Failed to fetch JQL results: ${errorMessage}`, 'error');
   }
 }
 
 // Main function to update Jira issues
 async function updateJiraIssue(useSecondOrg: boolean, blockUUID?: string): Promise<void> {
   try {
+    const adapter = getLogseqAdapter();
 
-    let currentBlock: BlockEntity | null;
+    let currentBlock: Block | null;
     let value: string;
     if (blockUUID) {
-      currentBlock = await logseq.Editor.getBlock(blockUUID);
+      currentBlock = await adapter.getBlock(blockUUID);
       value = currentBlock?.content ?? "";
     } else {
-      currentBlock = await logseq.Editor.getCurrentBlock();
-      value = await logseq.Editor.getEditingBlockContent();
+      currentBlock = await adapter.getCurrentBlock();
+      value = await adapter.getEditingBlockContent();
     }
 
     if (!currentBlock) {
@@ -210,7 +224,7 @@ async function updateJiraIssue(useSecondOrg: boolean, blockUUID?: string): Promi
     const issueKeys = extractIssueKeys(value);
 
     if (!issueKeys || issueKeys.length < 1) {
-      logseq.UI.showMsg("Couldn't find any Jira issues.", 'error');
+      adapter.showMessage("Couldn't find any Jira issues.", 'error');
       throw new Error("Couldn't find a valid Jira issue key.");
     }
 
@@ -219,7 +233,7 @@ async function updateJiraIssue(useSecondOrg: boolean, blockUUID?: string): Promi
       return;
     }
 
-    const settings = logseq.settings as JiraPluginSettings;
+    const settings = adapter.getSettings() as JiraPluginSettings;
     const enableOrgMode = settings.enableOrgMode;
     const data = generateTextFromResponse(issues, enableOrgMode);
     let newValue = value;
@@ -232,7 +246,7 @@ async function updateJiraIssue(useSecondOrg: boolean, blockUUID?: string): Promi
       newValue = formatTextBlock(newValue, properties);
     }
 
-    await logseq.Editor.updateBlock(currentBlock.uuid, newValue);
+    await adapter.updateBlock(currentBlock.uuid, newValue);
 
     await db.issues.add({ blockid: currentBlock.uuid, name: issueKeys.toString(), useSecondOrg, timestamp: Date.now() });
 
@@ -243,8 +257,8 @@ async function updateJiraIssue(useSecondOrg: boolean, blockUUID?: string): Promi
 
 async function updateJiraIssueOnPaste(value: string, useSecondOrg: boolean): Promise<void> {
   try {
-
-    const currentBlock = await logseq.Editor.getCurrentBlock();
+    const adapter = getLogseqAdapter();
+    const currentBlock = await adapter.getCurrentBlock();
 
     if (!currentBlock) {
       throw new Error('Select a block before running this command');
@@ -253,7 +267,7 @@ async function updateJiraIssueOnPaste(value: string, useSecondOrg: boolean): Pro
     const issueKeys = extractIssueKeys(value);
 
     if (!issueKeys || issueKeys.length < 1) {
-      logseq.UI.showMsg("Couldn't find any Jira issues.", 'error');
+      adapter.showMessage("Couldn't find any Jira issues.", 'error');
       throw new Error("Couldn't find a valid Jira issue key.");
     }
 
@@ -262,7 +276,7 @@ async function updateJiraIssueOnPaste(value: string, useSecondOrg: boolean): Pro
       return;
     }
 
-    const settings = logseq.settings as JiraPluginSettings;
+    const settings = adapter.getSettings() as JiraPluginSettings;
     const enableOrgMode = settings.enableOrgMode;
     const data = generateTextFromResponse(issues, enableOrgMode);
     let newValue = value;
@@ -275,7 +289,7 @@ async function updateJiraIssueOnPaste(value: string, useSecondOrg: boolean): Pro
       newValue = formatTextBlock(newValue, properties);
     }
 
-    await logseq.Editor.updateBlock(currentBlock.uuid, newValue);
+    await adapter.updateBlock(currentBlock.uuid, newValue);
 
     await db.issues.add({ blockid: currentBlock.uuid, name: issueKeys.toString(), useSecondOrg, timestamp: Date.now() });
 
@@ -287,16 +301,18 @@ async function updateJiraIssueOnPaste(value: string, useSecondOrg: boolean): Pro
 // Fetch Jira issues
 async function getIssues(issueKeys: Array<string>, useSecondOrg = false): Promise<IssuesWithDomain[] | undefined> {
   try {
-    if (!logseq.settings) {
-      logseq.UI.showMsg('Jira Plugin failed to get LogSeq settings');
+    const adapter = getLogseqAdapter();
+    const settings = adapter.getSettings() as JiraPluginSettings;
+    
+    if (!settings) {
+      adapter.showMessage('Jira Plugin failed to get LogSeq settings', 'error');
       throw new Error(`Failed to get LogSeq settings`);
     }
 
-    const settings = logseq.settings as JiraPluginSettings;
     const connectionSettings = getJiraConnectionSettings(settings, useSecondOrg);
 
     if (!connectionSettings.baseURL || !connectionSettings.APIToken || !connectionSettings.username) {
-      logseq.UI.showMsg('Jira credentials not set. Update in Plugin settings.')
+      adapter.showMessage('Jira credentials not set. Update in Plugin settings.', 'error');
       throw new Error('Jira base URL not set.');
     }
 
@@ -310,14 +326,16 @@ async function getIssues(issueKeys: Array<string>, useSecondOrg = false): Promis
     return issues;
 
   } catch (e: any) {
-    logseq.UI.showMsg(`Failed to fetch issues: ${e.message}`, 'error');
+    const adapter = getLogseqAdapter();
+    adapter.showMessage(`Failed to fetch issues: ${e.message}`, 'error');
   }
 };
 
 // Generate markdown text from response data
 function generateTextFromResponse(responses: IssuesWithDomain[], enableOrgMode: boolean): Data {
   const data: Data = {};
-  const settings = logseq.settings as JiraPluginSettings;
+  const adapter = getLogseqAdapter();
+  const settings = adapter.getSettings() as JiraPluginSettings;
 
   responses.forEach((issueWithDomain: IssuesWithDomain) => {
     const { key, fields } = issueWithDomain.body;
@@ -397,7 +415,8 @@ function formatTextBlock(input: string, keyValuePairs: Record<string, string>): 
 // Generate properties object from data
 function genProperties(properties: Data[string]): Record<string, string> {
   const { assignee, priority, fixVersion, status, reporter, summary, resolution } = properties;
-  const settings = logseq.settings as JiraPluginSettings;
+  const adapter = getLogseqAdapter();
+  const settings = adapter.getSettings() as JiraPluginSettings;
   const {
     showSummary,
     showAssignee,

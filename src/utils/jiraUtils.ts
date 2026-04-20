@@ -114,7 +114,16 @@ export async function makeIssueRequest(
         return response.data;
       } catch (error) {
         if (axios.isAxiosError(error)) {
-          logseq.UI.showMsg(`Failed to fetch ${issueKey}: ${error.message}`, 'error');
+          // Use dynamic import to avoid circular dependency
+          import('../adapters/adapterFactory').then(({ getLogseqAdapter }) => {
+            const adapter = getLogseqAdapter();
+            adapter.showMessage(`Failed to fetch ${issueKey}: ${error.message}`, 'error');
+          }).catch(() => {
+            // Fallback to direct API
+            if (typeof logseq?.UI?.showMsg === 'function') {
+              logseq.UI.showMsg(`Failed to fetch ${issueKey}: ${error.message}`, 'error');
+            }
+          });
         }
         return null;
       }

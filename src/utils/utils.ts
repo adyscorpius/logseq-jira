@@ -27,7 +27,26 @@ export type StatusCategoryColor = typeof CONSTANTS.STATUS_COLORS[keyof typeof CO
 /**
  * Current visibility state of the main UI
  */
-let mainUIVisible = logseq.isMainUIVisible;
+let mainUIVisible: boolean = false;
+
+// Initialize visibility state when adapter is available
+const initializeVisibility = () => {
+  try {
+    // Use dynamic import to avoid circular dependency
+    import('../adapters/adapterFactory').then(({ getLogseqAdapter }) => {
+      const adapter = getLogseqAdapter();
+      mainUIVisible = adapter.isMainUIVisible();
+    }).catch(() => {
+      // Fallback to direct API if adapter not available
+      mainUIVisible = logseq?.isMainUIVisible ?? false;
+    });
+  } catch {
+    mainUIVisible = false;
+  }
+};
+
+// Initialize on module load
+initializeVisibility();
 
 /**
  * Subscribes to a Logseq event and returns an unsubscribe function
@@ -39,8 +58,34 @@ function subscribeLogseqEvent<T extends LSPluginUserEvents>(
   eventName: T,
   handler: (event: { visible: boolean }) => void
 ): () => void {
-  logseq.on(eventName, handler);
-  return () => logseq.off(eventName, handler);
+  try {
+    // Use dynamic import to avoid circular dependency
+    import('../adapters/adapterFactory').then(({ getLogseqAdapter }) => {
+      const adapter = getLogseqAdapter();
+      adapter.on(eventName, handler);
+    }).catch(() => {
+      // Fallback to direct API
+      logseq.on(eventName, handler);
+    });
+    
+    return () => {
+      try {
+        import('../adapters/adapterFactory').then(({ getLogseqAdapter }) => {
+          const adapter = getLogseqAdapter();
+          adapter.off(eventName, handler);
+        }).catch(() => {
+          // Fallback to direct API
+          logseq.off(eventName, handler);
+        });
+      } catch {
+        // Silent fail for cleanup
+      }
+    };
+  } catch {
+    // Fallback to direct API
+    logseq.on(eventName, handler);
+    return () => logseq.off(eventName, handler);
+  }
 }
 
 /**

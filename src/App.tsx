@@ -1,5 +1,6 @@
 import React, { useRef } from "react";
 import { useAppVisible } from "./utils/utils";
+import { getLogseqAdapter } from "./adapters/adapterFactory";
 
 function App() {
   const innerRef = useRef<HTMLDivElement>(null);
@@ -10,7 +11,8 @@ function App() {
         className="backdrop-filter backdrop-blur-md fixed inset-0 flex items-center justify-center"
         onClick={(e) => {
           if (!innerRef.current?.contains(e.target as any)) {
-            window.logseq.hideMainUI();
+            const adapter = getLogseqAdapter();
+            adapter.hideMainUI();
           }
         }}
       >
