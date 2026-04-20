@@ -3,6 +3,7 @@ import React from "react";
 import { Issue, IssuesWithDomain, JiraConnectionSettings } from "../jiraTypes";
 import { JiraPluginSettings } from "../models";
 import { Data } from "../main";
+import { getIsDbGraph } from "../graphMode";
 
 /**
  * Constants for the application
@@ -264,6 +265,15 @@ export function removeProperties(allLines: string[]): string[] {
 }
 
 export function getIssuePageByKey(key: string) {
+  if (getIsDbGraph()) {
+    return logseq.DB.datascriptQuery(`[
+          :find (pull ?p [*])
+          :in $ ?k
+          :where
+            [?p :block/name]
+            [?p :plugin.property.logseq-jira/key ?k]
+          ]`, JSON.stringify(key));
+  }
   return logseq.DB.datascriptQuery(`[
           :find (pull ?p [*])
           :in $ ?pt ?k
@@ -285,30 +295,45 @@ export async function getIssuePage(issue: Data[string]) {
 }
 
 export async function getPagePreBlock(pageName: PageEntity["name"]) {
-  const [firstBlock] = await logseq.Editor.getPageBlocksTree(pageName);
-  const preBlock = firstBlock?.["preBlock?"]
-    ? firstBlock
-    : await logseq.Editor.insertBlock(firstBlock ? firstBlock.uuid : pageName, "", { isPageBlock: true, before: true });
+  if (getIsDbGraph()) {
+    // No pre-block in DB mode — page entity itself holds properties
+    const page = await logseq.Editor.getPage(pageName);
+    return page as unknown as BlockEntity;
+  }
 
-  return preBlock;
+  const blocks = await logseq.Editor.getPageBlocksTree(pageName);
+  const firstBlock = blocks?.[0] ?? null;
+
+  if (firstBlock?.["preBlock?"]) {
+    return firstBlock;
+  }
+
+  if (firstBlock) {
+    return logseq.Editor.insertBlock(firstBlock.uuid, "", { before: true });
+  }
+
+  return logseq.Editor.prependBlockInPage(pageName, "");
 }
 
 export async function updateBlockProperties(block: BlockEntity, blockProperties: Record<string, string>) {
-  const allLines = block.content.split("\n");
+  if (getIsDbGraph()) {
+    for (const [key, value] of Object.entries(blockProperties)) {
+      await logseq.Editor.upsertBlockProperty(block.uuid, key, value);
+    }
+    return;
+  }
+
+  const allLines = (block.content ?? "").split("\n");
   const firstPropertyLine = getFirstPropertyLine(allLines);
   const content = allLines.slice(0, firstPropertyLine).join("\n");
 
-  await logseq.Editor.updateBlock(block?.uuid,
-    content,
-    {
-      properties: blockProperties
-    }
-  );
+  await logseq.Editor.updateBlock(block.uuid, content, { properties: blockProperties });
 }
 
 export function getIssuePageTypeProperties(issueKey: string): Record<string, string> {
+  const pagetypeKey = getIsDbGraph() ? "pagetype" : CONSTANTS.PAGE_TYPE_PROPERTY;
   return {
-    [CONSTANTS.PAGE_TYPE_PROPERTY]: CONSTANTS.PAGE_TYPE_VALUE_JIRA_ISSUE,
+    [pagetypeKey]: CONSTANTS.PAGE_TYPE_VALUE_JIRA_ISSUE,
     "key": issueKey
   };
 }
