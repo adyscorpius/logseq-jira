@@ -18,7 +18,7 @@
   "author": "adyscorpius",
   "license": "MIT",
   "dependencies": {
-    "@logseq/libs": "^0.0.17",
+    "@logseq/libs": "^0.3.2",
     "axios": "^1.8.3",
     "dexie": "^4.0.11",
     "dexie-react-hooks": "^1.1.7",
@@ -56,7 +56,8 @@
     "author": "adyscorpius",
     "repository": "adyscorpius/logseq-jira",
     "icon": "jira.png",
-    "description": "Beautify and sync your Jira links in Logseq."
+    "description": "Beautify and sync your Jira links in Logseq.",
+    "supportsDB": true
   },
   "packageManager": "pnpm@9.1.1+sha512.14e915759c11f77eac07faba4d019c193ec8637229e62ec99eefb7cf3c3b75c64447882b7c485142451ee3a6b408059cdfb7b7fa0341b975f12d0f7629c71195"
 }

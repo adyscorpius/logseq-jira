@@ -12,7 +12,8 @@ import {
   extractIssues as extractIssueKeys, formatIssue, getIssuePageTypeProperties, getJiraConnectionSettings, getIssuePage as getOrCreateIssuePage, getPagePreBlock, getMarkdownRegexes, getOrgModeRegexes, removeProperties, statusCategoryGenerator, updateBlockProperties, type StatusCategoryColor
 } from "./utils/utils";
 import { db } from "./db";
-import { BlockEntity, PageEntity } from "@logseq/libs/dist/LSPlugin";
+import { BlockEntity, PageEntity, PropertySchema } from "@logseq/libs/dist/LSPlugin";
+import { getIsDbGraph, setIsDbGraph } from "./graphMode";
 import { 
   getIssueUrl, 
   makeIssueRequest, 
@@ -51,6 +52,27 @@ const pluginId = PL.id;
 async function main() {
 
   await db.open();
+
+  const isDb = Boolean(await logseq.App.checkCurrentIsDbGraph());
+  setIsDbGraph(isDb);
+
+  if (isDb) {
+    const dbProps: Array<{ key: string; schema: Partial<PropertySchema>; name: string }> = [
+      { key: 'pagetype',     schema: { type: 'default', cardinality: 'one', hide: true,  public: false }, name: 'Jira Page Type' },
+      { key: 'key',          schema: { type: 'default', cardinality: 'one', hide: false, public: true  }, name: 'Jira Key'       },
+      { key: 'link',         schema: { type: 'url',     cardinality: 'one', hide: false, public: true  }, name: 'Jira Link'      },
+      { key: 'summary',      schema: { type: 'default', cardinality: 'one', hide: false, public: true  }, name: 'Summary'        },
+      { key: 'status',       schema: { type: 'default', cardinality: 'one', hide: false, public: true  }, name: 'Status'         },
+      { key: 'assignee',     schema: { type: 'default', cardinality: 'one', hide: false, public: true  }, name: 'Assignee'       },
+      { key: 'priority',     schema: { type: 'default', cardinality: 'one', hide: false, public: true  }, name: 'Priority'       },
+      { key: 'fix-version',  schema: { type: 'default', cardinality: 'one', hide: false, public: true  }, name: 'Fix Version'    },
+      { key: 'reporter',     schema: { type: 'default', cardinality: 'one', hide: false, public: true  }, name: 'Reporter'       },
+      { key: 'resolution',   schema: { type: 'default', cardinality: 'one', hide: false, public: true  }, name: 'Resolution'     },
+    ];
+    for (const p of dbProps) {
+      await logseq.Editor.upsertProperty(p.key, p.schema, { name: p.name });
+    }
+  }
 
   console.info(`#${pluginId}: MAIN`);
   const root = ReactDOM.createRoot(document.getElementById("app")!);
@@ -142,7 +164,7 @@ async function getJQLResults(useSecondOrg: boolean = false) {
     const settings = logseq.settings as JiraPluginSettings;
     const connectionSettings = getJiraConnectionSettings(settings, useSecondOrg);
 
-    const enableOrgMode = settings?.enableOrgMode as boolean;
+    const enableOrgMode = getIsDbGraph() ? false : (settings?.enableOrgMode as boolean);
     const jqlTitle = settings?.jqlQueryTitle;
 
     if (!connectionSettings.baseURL || !connectionSettings.APIToken || !connectionSettings.username) {
@@ -200,7 +222,7 @@ async function updateJiraIssue(useSecondOrg: boolean, blockUUID?: string): Promi
     let value: string;
     if (blockUUID) {
       currentBlock = await logseq.Editor.getBlock(blockUUID);
-      value = currentBlock?.content ?? "";
+      value = (getIsDbGraph() ? currentBlock?.title : currentBlock?.content) ?? "";
     } else {
       currentBlock = await logseq.Editor.getCurrentBlock();
       value = await logseq.Editor.getEditingBlockContent();
@@ -210,7 +232,7 @@ async function updateJiraIssue(useSecondOrg: boolean, blockUUID?: string): Promi
       throw new Error('Select a block before running this command');
     }
 
-    // extract issuekeys from content only and ignoring the properties    
+    // extract issuekeys from content only and ignoring the properties
     const contentText = removeProperties(value.split("\n")).join("\n")
     const { key = "", linkedkey = "", link = "" } = currentBlock.properties ?? {};
     const issueKeys = extractIssueKeys(`${key} ${linkedkey} ${link} ${contentText}`);
@@ -226,7 +248,7 @@ async function updateJiraIssue(useSecondOrg: boolean, blockUUID?: string): Promi
     }
 
     const settings = logseq.settings as JiraPluginSettings;
-    const enableOrgMode = settings.enableOrgMode;
+    const enableOrgMode = getIsDbGraph() ? false : settings.enableOrgMode;
     const data = generateTextFromResponse(issues, enableOrgMode);
     const blockProperties = settings.addToBlockProperties ? genProperties(data[issueKeys[0]]) : {};
 
@@ -254,10 +276,18 @@ async function updateJiraIssue(useSecondOrg: boolean, blockUUID?: string): Promi
 
     if (settings.addToBlockProperties && !settings.createPage) {
       const properties = genProperties(data[issueKeys[0]]);
-      newValue = formatTextBlock(newValue, properties);
+      if (getIsDbGraph()) {
+        await logseq.Editor.updateBlock(currentBlock.uuid, newValue);
+        for (const [propKey, propValue] of Object.entries(properties)) {
+          await logseq.Editor.upsertBlockProperty(currentBlock.uuid, propKey, propValue);
+        }
+      } else {
+        newValue = formatTextBlock(newValue, properties);
+        await logseq.Editor.updateBlock(currentBlock.uuid, newValue);
+      }
+    } else {
+      await logseq.Editor.updateBlock(currentBlock.uuid, newValue);
     }
-
-    await logseq.Editor.updateBlock(currentBlock.uuid, newValue);
 
     await db.issues.add({ blockid: currentBlock.uuid, name: issueKeys.toString(), useSecondOrg, timestamp: Date.now() });
 
@@ -296,7 +326,7 @@ async function updateJiraIssueOnPaste(value: string, useSecondOrg: boolean): Pro
     }
 
     const settings = logseq.settings as JiraPluginSettings;
-    const enableOrgMode = settings.enableOrgMode;
+    const enableOrgMode = getIsDbGraph() ? false : settings.enableOrgMode;
     const data = generateTextFromResponse(issues, enableOrgMode);
     const blockProperties = settings.addToBlockProperties ? genProperties(data[issueKeys[0]]) : {};
 
@@ -324,10 +354,18 @@ async function updateJiraIssueOnPaste(value: string, useSecondOrg: boolean): Pro
 
     if (settings.addToBlockProperties && !settings.createPage) {
       const properties = genProperties(data[issueKeys[0]]);
-      newValue = formatTextBlock(newValue, properties);
+      if (getIsDbGraph()) {
+        await logseq.Editor.updateBlock(currentBlock.uuid, newValue);
+        for (const [propKey, propValue] of Object.entries(properties)) {
+          await logseq.Editor.upsertBlockProperty(currentBlock.uuid, propKey, propValue);
+        }
+      } else {
+        newValue = formatTextBlock(newValue, properties);
+        await logseq.Editor.updateBlock(currentBlock.uuid, newValue);
+      }
+    } else {
+      await logseq.Editor.updateBlock(currentBlock.uuid, newValue);
     }
-
-    await logseq.Editor.updateBlock(currentBlock.uuid, newValue);
 
     await db.issues.add({ blockid: currentBlock.uuid, name: issueKeys.toString(), useSecondOrg, timestamp: Date.now() });
 
