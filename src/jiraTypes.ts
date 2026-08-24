@@ -62,11 +62,9 @@ export type Issue = {
 }
 
 export type SearchResult = {
-  expand: string,
-  startAt: number,
-  maxResults: number,
-  total: number,
-  issues: Issue[]
+  issues: Issue[],
+  nextPageToken?: string,
+  isLast?: boolean
 }
 
 export type JiraConnectionSettings = {

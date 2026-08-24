@@ -57,7 +57,19 @@ export async function makeSearchRequest(
   connectionSettings: JiraConnectionSettings
 ): Promise<SearchResult> {
   try {
-    const jqlQueryUrl = `${constructRestApiUrl(connectionSettings.baseURL, connectionSettings.APIVersion)}/search?jql=${encodeURIComponent(jqlQuery)}`;
+    const fields = [
+      'key',
+      'summary',
+      'issuetype',
+      'fixVersions',
+      'priority',
+      'resolution',
+      'status',
+      'assignee',
+      'creator',
+      'reporter'
+    ].join(',');
+    const jqlQueryUrl = `${constructRestApiUrl(connectionSettings.baseURL, connectionSettings.APIVersion)}/search/jql?jql=${encodeURIComponent(jqlQuery)}&fields=${encodeURIComponent(fields)}`;
     
     const response = await axios.get<SearchResult>(jqlQueryUrl, {
       headers: {
